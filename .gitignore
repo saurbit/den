@@ -1,0 +1,16 @@
+# Deno
+.deno/
+
+# Editor
+.vscode/
+!.vscode/settings.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
