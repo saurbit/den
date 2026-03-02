@@ -1,6 +1,6 @@
-import type { MiddlewareHandler, Env } from "hono";
+import type { MiddlewareHandler, Env, Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { evaluateStrategy, type StrategyOptions, type AuthCredentials, StrategyInternalError } from "@saurbit/oauth2-server";
+import { evaluateStrategy, type StrategyOptions, type AuthCredentials, StrategyInternalError, StrategyVerifyTokenFunction } from "@saurbit/oauth2-server";
 
 export interface OAuth2ServerEnv extends Env {
   Variables: {
@@ -8,18 +8,33 @@ export interface OAuth2ServerEnv extends Env {
   };
 }
 
+export interface HonoStrategyOptions<E extends Env = Env> extends Omit<StrategyOptions, "verifyToken"> {
+  verifyToken?: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>;
+}
+
 // Re-export for convenience
-export type { StrategyOptions, AuthCredentials, TokenType, TokenValidationResponse } from "@saurbit/oauth2-server";
+export type { StrategyOptions, StrategyVerifyTokenFunction, AuthCredentials, TokenType, TokenValidationResponse } from "@saurbit/oauth2-server";
 export { BearerToken } from "@saurbit/oauth2-server";
+
+
 
 /**
  * Hono adapter for the oauth2-server strategy.
  */
 export function createAuthMiddleware<E extends Env = Env>(
-  options: StrategyOptions
+  options: HonoStrategyOptions<E>
 ): MiddlewareHandler<E & OAuth2ServerEnv> {
   return async (c, next) => {
-    const result = await evaluateStrategy(c.req.raw, options);
+
+    const honoVerifyToken = options.verifyToken;
+    const verifyToken: StrategyVerifyTokenFunction | undefined = honoVerifyToken ? async (_, params) => {
+      return await honoVerifyToken(c, params);
+    } : undefined
+
+    const result = await evaluateStrategy(c.req.raw, {
+      ...options,
+      verifyToken
+    });
 
     if (result.success) {
       // set credentials in context for downstream handlers

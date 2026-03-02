@@ -66,12 +66,9 @@ export interface AuthCredentials<
     app?: AuthApp;
 }
 
-export interface StrategyOptions {
-    tokenType: TokenType;
-    useAccessTokenJwks?: boolean;
-    jwtVerifier?: JwtVerifier;
-    verifyToken?(
-        request: Request,
+export interface StrategyVerifyTokenFunction<Req = Request> {
+    (
+        request: Req,
         tokens: {
             /**
              * The access token to validate and/or decode
@@ -91,7 +88,14 @@ export interface StrategyOptions {
         isValid?: boolean;
         credentials?: AuthCredentials;
         message?: string;
-    };
+    }
+}
+
+export interface StrategyOptions {
+    tokenType: TokenType;
+    useAccessTokenJwks?: boolean;
+    jwtVerifier?: JwtVerifier;
+    verifyToken?: StrategyVerifyTokenFunction<Request>;
 }
 
 export type StrategyResult =

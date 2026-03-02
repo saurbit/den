@@ -61,7 +61,8 @@ export type {
   AuthCredentials,
   StrategyResult,
   UserCredentials,
-  StrategyOptions
+  StrategyOptions,
+  StrategyVerifyTokenFunction
 } from "./src/strategy.ts";
 export { 
   evaluateStrategy,
