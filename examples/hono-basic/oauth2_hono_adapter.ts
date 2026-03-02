@@ -2,7 +2,7 @@ import type { MiddlewareHandler, Env } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { evaluateStrategy, type StrategyOptions, type AuthCredentials, StrategyInternalError } from "@saurbit/oauth2-server";
 
-export interface Oauth2ServerEnv extends Env {
+export interface OAuth2ServerEnv extends Env {
   Variables: {
     credentials?: AuthCredentials;
   };
@@ -17,7 +17,7 @@ export { BearerToken } from "@saurbit/oauth2-server";
  */
 export function createAuthMiddleware<E extends Env = Env>(
   options: StrategyOptions
-): MiddlewareHandler<E & Oauth2ServerEnv> {
+): MiddlewareHandler<E & OAuth2ServerEnv> {
   return async (c, next) => {
     const result = await evaluateStrategy(c.req.raw, options);
 

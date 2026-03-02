@@ -32,6 +32,10 @@ export interface RawKey {
         n: string;
     }
 
+export type JwtDecode = (jwt: string) => JwtPayload | Promise<JwtPayload>;
+
+export type JwtVerify = (jwt: string, key: Uint8Array | string, options?: { algorithms?: string[] }) => Promise<JwtPayload>;
+
 export interface JwksKeyStore {
     /**
      * Stores the current active private key and its corresponding public key.
