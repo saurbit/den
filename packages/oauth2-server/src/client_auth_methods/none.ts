@@ -9,7 +9,7 @@ export class NoneAuthMethod implements ClientAuthMethod {
         return true;
     }
 
-    async extractParams(req: Request): Promise<ClientAuthMethodResponse> {
+    async extractClientCredentials(req: Request): Promise<ClientAuthMethodResponse> {
         const res: ClientAuthMethodResponse = {
             hasAuthMethod: false,
         };

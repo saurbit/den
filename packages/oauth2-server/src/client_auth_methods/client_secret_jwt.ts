@@ -62,7 +62,7 @@ export class ClientSecretJwt implements ClientAuthMethod {
         return this;
     }
 
-    async extractParams(req: Request): Promise<ClientAuthMethodResponse> {
+    async extractClientCredentials(req: Request): Promise<ClientAuthMethodResponse> {
         const res: ClientAuthMethodResponse = {
             hasAuthMethod: false,
         };

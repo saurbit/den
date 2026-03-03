@@ -15,9 +15,9 @@ export interface ClientAuthMethod {
     readonly algorithms?: string[];
 
     /**
-     * Extract clientId and clientSecret from the request
+     * Extract client id and client secret from the request
      */
-    extractParams(request: Request): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
+    extractClientCredentials(request: Request): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
 }
 
 export type ClientAuthMethodResponse = {
@@ -39,5 +39,5 @@ export interface ClientAuthMethod {
     /**
      * Extract clientId and clientSecret from the request
      */
-    extractParams(request: Request): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
+    extractClientCredentials(request: Request): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
 }

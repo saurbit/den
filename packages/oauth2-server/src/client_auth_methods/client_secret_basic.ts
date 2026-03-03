@@ -9,7 +9,7 @@ export class ClientSecretBasic implements ClientAuthMethod {
         return false;
     }
 
-    extractParams(request: Request): ClientAuthMethodResponse {
+    extractClientCredentials(request: Request): ClientAuthMethodResponse {
         const res: ClientAuthMethodResponse = {
             hasAuthMethod: false,
         };

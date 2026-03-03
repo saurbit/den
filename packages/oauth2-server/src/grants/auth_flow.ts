@@ -21,7 +21,7 @@ export interface OAuth2AuthFlowOptions {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options?: OAuth2AuthOptions<any>;
     */
-    strategyName?: string;
+    securitySchemeName?: string;
 }
 
 export abstract class OAuth2AuthFlow {
@@ -64,10 +64,12 @@ export abstract class OAuth2AuthFlow {
     }
 
     //
-    protected strategyName: string;
+    protected securitySchemeName: string;
     protected description?: string;
     protected scopes?: Record<string, string>;
-    protected tokenTtl?: number;
+    
+    /** Default lifetime (in seconds) for access tokens. @default {3600} */
+    protected accessTokenLifetime: number = 3600;
 
     protected jwksPublicKeyTtl?: number;
     protected jwksRotationIntervalMs?: number;
@@ -88,7 +90,7 @@ export abstract class OAuth2AuthFlow {
 
     constructor(options?: OAuth2AuthFlowOptions) {
         this._tokenType = new BearerToken();
-        this.strategyName = options?.strategyName || 'oauth2-auth-flow';
+        this.securitySchemeName = options?.securitySchemeName || 'oauth2-auth-flow';
         //this.options = options?.options ? { ...options.options } : {};
 
         //
@@ -118,7 +120,7 @@ export abstract class OAuth2AuthFlow {
             const amInstance = authMethodsInstances[am];
             if (amInstance) {
                 //console.log('Check', amInstance.method, '...')
-                const v = await amInstance.extractParams(req as unknown as Request);
+                const v = await amInstance.extractClientCredentials(req as unknown as Request);
                 if (v.hasAuthMethod) {
                     //console.log(amInstance.method, 'IS BEING USED')
                     clientId = v.clientId;
@@ -263,30 +265,18 @@ export abstract class OAuth2AuthFlow {
         return this;
     }
 
-    //
-
     /**
-     * @deprecated Use setTokenTtl instead
+     * 
+     * @param ttlSeconds - Lifetime in seconds of the access token. Defaults to 1 hour.
+     * @returns 
      */
-    setTokenTTL(ttlSeconds?: number): this {
-        this.tokenTtl = ttlSeconds;
+    setAccessTokenLifetime(ttlSeconds: number = 3600): this {
+        this.accessTokenLifetime = ttlSeconds;
         return this;
     }
 
-    /**
-     * @deprecated Use getTokenTtl instead
-     */
-    getTokenTTL(): number | undefined {
-        return this.tokenTtl;
-    }
-
-    setTokenTtl(ttlSeconds?: number): this {
-        this.tokenTtl = ttlSeconds;
-        return this;
-    }
-
-    getTokenTtl(): number | undefined {
-        return this.tokenTtl;
+    getAccessTokenLifetime(): number | undefined {
+        return this.accessTokenLifetime;
     }
 
     setDescription(description: string): this {
@@ -309,8 +299,8 @@ export abstract class OAuth2AuthFlow {
         return this.scopes;
     }
 
-    getStrategyName(): string {
-        return this.strategyName;
+    getSecuritySchemeName(): string {
+        return this.securitySchemeName;
     }
 
     getDescription(): string | undefined {
@@ -326,7 +316,7 @@ export abstract class OAuth2AuthFlow {
         const tokenTypeInstance = this._tokenType;
         const getJwtAuthority = () => this.getJwtAuthority();
 
-        t.scheme(this.strategyName, (_server, options) => {
+        t.scheme(this.securitySchemeName, (_server, options) => {
             return {
                 async authenticate(request, h) {
                     const settings: OAuth2AuthOptions = Hoek.applyToDefaults({}, options || {});
@@ -394,7 +384,7 @@ export abstract class OAuth2AuthFlow {
                 },
             };
         });
-        t.strategy(this.strategyName, this.strategyName, this.options);
+        t.strategy(this.securitySchemeName, this.securitySchemeName, this.options);
     }
         */
 }
