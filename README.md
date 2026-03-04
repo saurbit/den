@@ -1,6 +1,7 @@
 # Saurbit
 
-A monorepo for developing and maintaining modular, reusable **backend** packages built with [Deno](https://deno.land/).
+A monorepo for developing and maintaining modular, reusable **backend** packages built with
+[Deno](https://deno.land/).
 
 ## Structure
 

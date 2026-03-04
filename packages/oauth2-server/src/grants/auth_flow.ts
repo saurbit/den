@@ -1,23 +1,23 @@
 import { InvalidRequestError, OAuth2Error } from "../errors.ts";
 import { BearerTokenType } from "../token_types/bearer_token.ts";
 import { TokenType } from "../token_types/types.ts";
-import { 
-    ClientAuthMethod, 
-    ClientSecretBasic, 
-    ClientSecretPost, 
-    NoneAuthMethod, 
-    sortTokenEndpointAuthMethods, 
-    TokenEndpointAuthMethod 
+import {
+  ClientAuthMethod,
+  ClientSecretBasic,
+  ClientSecretPost,
+  NoneAuthMethod,
+  sortTokenEndpointAuthMethods,
+  TokenEndpointAuthMethod,
 } from "../client_auth_methods/mod.ts";
 import { JwtAuthority } from "../utils/jwt_authority.ts";
 import { OAuth2TokenResponseBody } from "../types.ts";
 
 export type OAuth2AuthFlowTokenResponse =
-    | { success: true; tokenResponse: OAuth2TokenResponseBody }
-    | { success: false; error: OAuth2Error };
+  | { success: true; tokenResponse: OAuth2TokenResponseBody }
+  | { success: false; error: OAuth2Error };
 
 export interface OAuth2AuthFlowOptions {
-    /*
+  /*
     logger?: ILogger;
     jwksOptions?: OAuth2JwksOptions;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,130 +25,134 @@ export interface OAuth2AuthFlowOptions {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options?: OAuth2AuthOptions<any>;
     */
-    securitySchemeName?: string;
-    accessTokenLifetime?: number;
+  securitySchemeName?: string;
+  accessTokenLifetime?: number;
 }
 
 export abstract class OAuth2AuthFlow {
-    abstract readonly grantType: string;
+  abstract readonly grantType: string;
 
-    protected _clientAuthMethods: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
-        client_secret_basic: undefined,
-        client_secret_post: undefined,
-        client_secret_jwt: undefined,
-        private_key_jwt: undefined,
-        none: undefined,
+  protected _clientAuthMethods: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
+    client_secret_basic: undefined,
+    client_secret_post: undefined,
+    client_secret_jwt: undefined,
+    private_key_jwt: undefined,
+    none: undefined,
+  };
+
+  protected _tokenType: TokenType;
+
+  get tokenType(): string {
+    return this._tokenType.prefix;
+  }
+
+  protected get clientAuthMethods(): Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> {
+    const result: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
+      client_secret_basic: undefined,
+      client_secret_post: undefined,
+      client_secret_jwt: undefined,
+      private_key_jwt: undefined,
+      none: undefined,
     };
 
-    protected _tokenType: TokenType;
+    const keys = Object.keys(this._clientAuthMethods)
+      .map((key) => {
+        const k = key as TokenEndpointAuthMethod;
+        result[k] = this._clientAuthMethods[k];
+        return this._clientAuthMethods[k] ? key : undefined;
+      })
+      .filter((key): key is TokenEndpointAuthMethod => !!key);
 
-    get tokenType(): string {
-        return this._tokenType.prefix;
+    if (!keys.length) {
+      result.client_secret_basic = new ClientSecretBasic();
     }
 
-    protected get clientAuthMethods(): Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> {
-        const result: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
-            client_secret_basic: undefined,
-            client_secret_post: undefined,
-            client_secret_jwt: undefined,
-            private_key_jwt: undefined,
-            none: undefined,
-        };
+    return result;
+  }
 
-        const keys = Object.keys(this._clientAuthMethods)
-            .map((key) => {
-                const k = key as TokenEndpointAuthMethod;
-                result[k] = this._clientAuthMethods[k];
-                return this._clientAuthMethods[k] ? key : undefined;
-            })
-            .filter((key): key is TokenEndpointAuthMethod => !!key);
+  //
+  protected securitySchemeName: string;
+  protected description?: string;
+  protected scopes?: Record<string, string>;
 
-        if (!keys.length) {
-            result.client_secret_basic = new ClientSecretBasic();
-        }
+  /** Default lifetime (in seconds) for access tokens. @default {3600} */
+  protected accessTokenLifetime: number = 3600;
 
-        return result;
-    }
-
-    //
-    protected securitySchemeName: string;
-    protected description?: string;
-    protected scopes?: Record<string, string>;
-    
-    /** Default lifetime (in seconds) for access tokens. @default {3600} */
-    protected accessTokenLifetime: number = 3600;
-
-    protected jwksPublicKeyTtl?: number;
-    protected jwksRotationIntervalMs?: number;
-    protected jwtAuthority?: JwtAuthority;
-    /*
+  protected jwksPublicKeyTtl?: number;
+  protected jwksRotationIntervalMs?: number;
+  protected jwtAuthority?: JwtAuthority;
+  /*
     protected options: OAuth2AuthOptions;
-    
+
     protected logger?: ILogger;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected jwksRoute?: IJWKSRoute<any>;
     protected jwksKeyStore?: JwksKeyStore;
-    
+
     protected jwksRotationTimestampStore?: JwksRotationTimestampStore;
-    
+
     protected jwksRotator?: JwksRotator;
     */
 
-    constructor(options?: OAuth2AuthFlowOptions) {
-        this._tokenType = new BearerTokenType();
-        this.securitySchemeName = options?.securitySchemeName || 'oauth2-auth-flow';
-        this.accessTokenLifetime = options?.accessTokenLifetime || 3600;
-        //this.options = options?.options ? { ...options.options } : {};
+  constructor(options?: OAuth2AuthFlowOptions) {
+    this._tokenType = new BearerTokenType();
+    this.securitySchemeName = options?.securitySchemeName || "oauth2-auth-flow";
+    this.accessTokenLifetime = options?.accessTokenLifetime || 3600;
+    //this.options = options?.options ? { ...options.options } : {};
 
-        //
-        //this.jwksRoute = options?.jwksRoute;
-        //this.jwksKeyStore = options?.jwksOptions?.keyStore;
-        
-        //this.jwksPublicKeyTtl = options?.jwksOptions?.ttl;
-        //this.jwksRotationIntervalMs = options?.jwksOptions?.rotation?.intervalMs;
-        
-        //this.jwksRotationTimestampStore = options?.jwksOptions?.rotation?.timestampStore;
-    }
+    //
+    //this.jwksRoute = options?.jwksRoute;
+    //this.jwksKeyStore = options?.jwksOptions?.keyStore;
 
-    protected async extractClientCredentials(
-        req: Request,
-        authMethodsInstances: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined>,
-        supported: TokenEndpointAuthMethod[]
-    ): Promise<{
-        clientId?: string;
-        clientSecret?: string;
-        error?: OAuth2Error;
-    }> {
-        let clientId: string | undefined;
-        let clientSecret: string | undefined;
-        let error: OAuth2Error | undefined;
+    //this.jwksPublicKeyTtl = options?.jwksOptions?.ttl;
+    //this.jwksRotationIntervalMs = options?.jwksOptions?.rotation?.intervalMs;
 
-        for (const am of supported) {
-            const amInstance = authMethodsInstances[am];
-            if (amInstance) {
-                const v = await amInstance.extractClientCredentials(req as unknown as Request);
-                if (v.hasAuthMethod) {
-                    clientId = v.clientId;
-                    clientSecret = v.clientSecret;
-                    if (!v.clientId) {
-                        error = new InvalidRequestError(`${amInstance.method} authentication requires client_id`);
-                    } else if (!amInstance.secretIsOptional && !v.clientSecret) {
-                        error = new InvalidRequestError(`${amInstance.method} authentication requires client_secret`);
-                    }
-                    break;
-                }
-            }
+    //this.jwksRotationTimestampStore = options?.jwksOptions?.rotation?.timestampStore;
+  }
+
+  protected async extractClientCredentials(
+    req: Request,
+    authMethodsInstances: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined>,
+    supported: TokenEndpointAuthMethod[],
+  ): Promise<{
+    clientId?: string;
+    clientSecret?: string;
+    error?: OAuth2Error;
+  }> {
+    let clientId: string | undefined;
+    let clientSecret: string | undefined;
+    let error: OAuth2Error | undefined;
+
+    for (const am of supported) {
+      const amInstance = authMethodsInstances[am];
+      if (amInstance) {
+        const v = await amInstance.extractClientCredentials(req as unknown as Request);
+        if (v.hasAuthMethod) {
+          clientId = v.clientId;
+          clientSecret = v.clientSecret;
+          if (!v.clientId) {
+            error = new InvalidRequestError(
+              `${amInstance.method} authentication requires client_id`,
+            );
+          } else if (!amInstance.secretIsOptional && !v.clientSecret) {
+            error = new InvalidRequestError(
+              `${amInstance.method} authentication requires client_secret`,
+            );
+          }
+          break;
         }
-
-        return {
-            error,
-            clientId,
-            clientSecret,
-        };
+      }
     }
 
-    /*
+    return {
+      error,
+      clientId,
+      clientSecret,
+    };
+  }
+
+  /*
     protected getJwtAuthority(): JwtAuthority | undefined {
         if (this.jwtAuthority) return this.jwtAuthority;
         if (this.jwksRoute || this.jwksKeyStore || this.options.useAccessTokenJwks) {
@@ -162,7 +166,7 @@ export abstract class OAuth2AuthFlow {
     }
     */
 
-    /*
+  /*
     protected getJwksRotator(): JwksRotator | undefined {
         if (this.jwksRotator) return this.jwksRotator;
         const jwtAuthority = this.getJwtAuthority();
@@ -178,7 +182,7 @@ export abstract class OAuth2AuthFlow {
     }
     */
 
-    /*
+  /*
     protected createJwksEndpoint(t: KaapiTools) {
         const jwtAuthority = this.getJwtAuthority();
 
@@ -213,108 +217,105 @@ export abstract class OAuth2AuthFlow {
     }
     */
 
-    /*
+  /*
     async checkAndRotateKeys(): Promise<void> {
         return this.getJwksRotator()?.checkAndRotateKeys();
     }
         */
 
+  setTokenType(value: TokenType): this {
+    this._tokenType = value;
+    return this;
+  }
 
-    setTokenType(value: TokenType): this {
-        this._tokenType = value;
-        return this;
+  getTokenEndpointAuthMethods(): TokenEndpointAuthMethod[] {
+    const result = Object.keys(this._clientAuthMethods)
+      .map((key) => {
+        return this._clientAuthMethods[key as TokenEndpointAuthMethod] ? key : undefined;
+      })
+      .filter((key): key is TokenEndpointAuthMethod => !!key);
+
+    if (!result.length) {
+      result.push("client_secret_basic");
     }
 
-    getTokenEndpointAuthMethods(): TokenEndpointAuthMethod[] {
-        const result = Object.keys(this._clientAuthMethods)
-            .map((key) => {
-                return this._clientAuthMethods[key as TokenEndpointAuthMethod] ? key : undefined;
-            })
-            .filter((key): key is TokenEndpointAuthMethod => !!key);
+    return sortTokenEndpointAuthMethods(result);
+  }
 
-        if (!result.length) {
-            result.push('client_secret_basic');
-        }
+  clientSecretBasicAuthenticationMethod(): this {
+    this._clientAuthMethods.client_secret_basic = new ClientSecretBasic();
+    return this;
+  }
 
-        return sortTokenEndpointAuthMethods(result);
+  clientSecretPostAuthenticationMethod(): this {
+    this._clientAuthMethods.client_secret_post = new ClientSecretPost();
+    return this;
+  }
+
+  noneAuthenticationMethod(): this {
+    this._clientAuthMethods.none = new NoneAuthMethod();
+    return this;
+  }
+
+  addClientAuthenticationMethod(
+    value: "client_secret_basic" | "client_secret_post" | "none" | ClientAuthMethod,
+  ): this {
+    if (value == "client_secret_basic") {
+      this.clientSecretPostAuthenticationMethod();
+    } else if (value == "client_secret_post") {
+      this.clientSecretBasicAuthenticationMethod();
+    } else if (value == "none") {
+      this.noneAuthenticationMethod();
+    } else {
+      this._clientAuthMethods[value.method] = value;
     }
+    return this;
+  }
 
-    clientSecretBasicAuthenticationMethod(): this {
-        this._clientAuthMethods.client_secret_basic = new ClientSecretBasic();
-        return this;
-    }
+  /**
+   * @param ttlSeconds - Lifetime in seconds of the access token. Defaults to 1 hour.
+   * @returns
+   */
+  setAccessTokenLifetime(ttlSeconds: number = 3600): this {
+    this.accessTokenLifetime = ttlSeconds;
+    return this;
+  }
 
-    clientSecretPostAuthenticationMethod(): this {
-        this._clientAuthMethods.client_secret_post = new ClientSecretPost();
-        return this;
-    }
+  getAccessTokenLifetime(): number | undefined {
+    return this.accessTokenLifetime;
+  }
 
-    noneAuthenticationMethod(): this {
-        this._clientAuthMethods.none = new NoneAuthMethod();
-        return this;
-    }
+  setDescription(description: string): this {
+    this.description = description;
+    return this;
+  }
 
-    addClientAuthenticationMethod(
-        value: 'client_secret_basic' | 'client_secret_post' | 'none' | ClientAuthMethod
-    ): this {
-        if (value == 'client_secret_basic') {
-            this.clientSecretPostAuthenticationMethod();
-        } else if (value == 'client_secret_post') {
-            this.clientSecretBasicAuthenticationMethod();
-        } else if (value == 'none') {
-            this.noneAuthenticationMethod();
-        } else {
-            this._clientAuthMethods[value.method] = value;
-        }
-        return this;
-    }
+  /**
+   * @param scopes The scopes of the access request.
+   * A map between the scope name and a short description for it. The map MAY be empty.
+   * @returns
+   */
+  setScopes(scopes: Record<string, string>): this {
+    this.scopes = scopes;
+    return this;
+  }
 
-    /**
-     * 
-     * @param ttlSeconds - Lifetime in seconds of the access token. Defaults to 1 hour.
-     * @returns 
-     */
-    setAccessTokenLifetime(ttlSeconds: number = 3600): this {
-        this.accessTokenLifetime = ttlSeconds;
-        return this;
-    }
+  getScopes(): Record<string, string> | undefined {
+    return this.scopes;
+  }
 
-    getAccessTokenLifetime(): number | undefined {
-        return this.accessTokenLifetime;
-    }
+  getSecuritySchemeName(): string {
+    return this.securitySchemeName;
+  }
 
-    setDescription(description: string): this {
-        this.description = description;
-        return this;
-    }
+  getDescription(): string | undefined {
+    return this.description;
+  }
 
-    /**
-     *
-     * @param scopes The scopes of the access request.
-     * A map between the scope name and a short description for it. The map MAY be empty.
-     * @returns
-     */
-    setScopes(scopes: Record<string, string>): this {
-        this.scopes = scopes;
-        return this;
-    }
-
-    getScopes(): Record<string, string> | undefined {
-        return this.scopes;
-    }
-
-    getSecuritySchemeName(): string {
-        return this.securitySchemeName;
-    }
-
-    getDescription(): string | undefined {
-        return this.description;
-    }
-
-    /**
-     * Where authentication schemes and strategies are registered.
-     */
-    /*
+  /**
+   * Where authentication schemes and strategies are registered.
+   */
+  /*
     integrateStrategy(t: KaapiTools): void {
         const tokenTypePrefix = this.tokenType;
         const tokenTypeInstance = this._tokenType;
@@ -392,26 +393,26 @@ export abstract class OAuth2AuthFlow {
     }
         */
 
-    toOpenAPIPathItem(scopes?: string[]) {
-        return {
-            [this.getSecuritySchemeName()]: scopes || []
-        }
-    }
+  toOpenAPIPathItem(scopes?: string[]) {
+    return {
+      [this.getSecuritySchemeName()]: scopes || [],
+    };
+  }
 
-    /**
-     * Handle a token request for the specific grant type.
-     * @param request The incoming HTTP request.
-     * @returns The token response, which can be either a success with the token response body or a failure with an error.
-     */
-    abstract token(request: Request): Promise<OAuth2AuthFlowTokenResponse>;
+  /**
+   * Handle a token request for the specific grant type.
+   * @param request The incoming HTTP request.
+   * @returns The token response, which can be either a success with the token response body or a failure with an error.
+   */
+  abstract token(request: Request): Promise<OAuth2AuthFlowTokenResponse>;
 
-    /**
-     * Convert the grant flow to an OpenAPI security scheme object.
-     * @param options Options for generating the OpenAPI security scheme.
-     */
-    abstract toOpenAPISecurityScheme(options?: {
-        authorizationUrl?: string;
-        tokenUrl?: string;
-        refreshUrl?: string;
-    }): Record<string, unknown>;
+  /**
+   * Convert the grant flow to an OpenAPI security scheme object.
+   * @param options Options for generating the OpenAPI security scheme.
+   */
+  abstract toOpenAPISecurityScheme(options?: {
+    authorizationUrl?: string;
+    tokenUrl?: string;
+    refreshUrl?: string;
+  }): Record<string, unknown>;
 }

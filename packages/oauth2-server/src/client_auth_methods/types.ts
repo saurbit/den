@@ -1,43 +1,47 @@
 export type TokenEndpointAuthMethod =
-    | 'client_secret_basic'
-    | 'client_secret_post'
-    | 'client_secret_jwt'
-    | 'private_key_jwt'
-    | 'none';
+  | "client_secret_basic"
+  | "client_secret_post"
+  | "client_secret_jwt"
+  | "private_key_jwt"
+  | "none";
 
-export type OAuth2ClientAuthentication = 'body' | 'header' | TokenEndpointAuthMethod;
+export type OAuth2ClientAuthentication = "body" | "header" | TokenEndpointAuthMethod;
 
 export interface ClientAuthMethod {
-    readonly method: TokenEndpointAuthMethod;
+  readonly method: TokenEndpointAuthMethod;
 
-    readonly secretIsOptional: boolean;
+  readonly secretIsOptional: boolean;
 
-    readonly algorithms?: string[];
+  readonly algorithms?: string[];
 
-    /**
-     * Extract client id and client secret from the request
-     */
-    extractClientCredentials(request: Request): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
+  /**
+   * Extract client id and client secret from the request
+   */
+  extractClientCredentials(
+    request: Request,
+  ): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
 }
 
 export type ClientAuthMethodResponse = {
-    /**
-     * if the authentication method is in the request
-     */
-    hasAuthMethod: boolean;
-    clientId?: string;
-    clientSecret?: string;
+  /**
+   * if the authentication method is in the request
+   */
+  hasAuthMethod: boolean;
+  clientId?: string;
+  clientSecret?: string;
 };
 
 export interface ClientAuthMethod {
-    readonly method: TokenEndpointAuthMethod;
+  readonly method: TokenEndpointAuthMethod;
 
-    readonly secretIsOptional: boolean;
+  readonly secretIsOptional: boolean;
 
-    readonly algorithms?: string[];
+  readonly algorithms?: string[];
 
-    /**
-     * Extract clientId and clientSecret from the request
-     */
-    extractClientCredentials(request: Request): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
+  /**
+   * Extract clientId and clientSecret from the request
+   */
+  extractClientCredentials(
+    request: Request,
+  ): Promise<ClientAuthMethodResponse> | ClientAuthMethodResponse;
 }

@@ -6,6 +6,11 @@ export type TokenTypeValidationResponse = {
 
 export interface TokenType {
   readonly prefix: string;
-  isValid: (request: Request, token: string) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
-  isValidTokenRequest?: (request: Request) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
+  isValid: (
+    request: Request,
+    token: string,
+  ) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
+  isValidTokenRequest?: (
+    request: Request,
+  ) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
 }

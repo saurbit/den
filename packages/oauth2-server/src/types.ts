@@ -4,14 +4,14 @@
 export type OAuth2Scope = string | string[];
 
 export interface OAuth2TokenResponseBody {
-    access_token: string;
-    token_type: string;
-    expires_in?: number;
-    refresh_token?: string;
-    scope?: string;
-    id_token?: string;
-    error?: never;
-    [key: string]: unknown;
+  access_token: string;
+  token_type: string;
+  expires_in?: number;
+  refresh_token?: string;
+  scope?: string;
+  id_token?: string;
+  error?: never;
+  [key: string]: unknown;
 }
 
 /**
@@ -99,17 +99,41 @@ export interface OAuth2Model {
   /**
    * Retrieve a client by its id (and optionally verify its secret).
    */
-  getClient(clientId: string, clientSecret?: string, options?: { grantType?: string, scopes?: string[]; }): Promise<OAuth2Client | undefined>;
+  getClient(
+    clientId: string,
+    clientSecret?: string,
+    options?: { grantType?: string; scopes?: string[] },
+  ): Promise<OAuth2Client | undefined>;
 
   // ── Token persistence ──────────────────────────────────────────────
-  
-  generateAccessToken?(client: OAuth2Client, validatedOptions: { scopes: string[]; grantType: string; accessTokenLifetime: number; tokenType: string; }): Promise<string | undefined>;
-  generateRefreshToken?(client: OAuth2Client, validatedOptions: { scopes: string[]; grantType: string; accessTokenLifetime: number; tokenType: string; }): Promise<string | undefined>;
+
+  generateAccessToken?(
+    client: OAuth2Client,
+    validatedOptions: {
+      scopes: string[];
+      grantType: string;
+      accessTokenLifetime: number;
+      tokenType: string;
+    },
+  ): Promise<string | undefined>;
+  generateRefreshToken?(
+    client: OAuth2Client,
+    validatedOptions: {
+      scopes: string[];
+      grantType: string;
+      accessTokenLifetime: number;
+      tokenType: string;
+    },
+  ): Promise<string | undefined>;
 
   /**
    * Persist a newly generated token.
    */
-  saveToken(token: OAuth2Token, client: OAuth2Client, user: Record<string, unknown>): Promise<OAuth2Token>;
+  saveToken(
+    token: OAuth2Token,
+    client: OAuth2Client,
+    user: Record<string, unknown>,
+  ): Promise<OAuth2Token>;
 
   /**
    * Retrieve an existing access token.

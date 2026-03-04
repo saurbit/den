@@ -14,7 +14,6 @@ export { OAuth2Server } from "./src/server.ts";
 export type { OAuth2ServerOptions } from "./src/server.ts";
 
 export {
-  OAuth2Error,
   AccessDeniedError,
   InsufficientScopeError,
   InvalidClientError,
@@ -22,6 +21,7 @@ export {
   InvalidRequestError,
   InvalidScopeError,
   InvalidTokenError,
+  OAuth2Error,
   ServerError,
   UnauthorizedClientError,
   UnauthorizedRequestError,
@@ -30,46 +30,39 @@ export {
 } from "./src/errors.ts";
 
 export type {
-  OAuth2Client,
-  OAuth2Token,
   OAuth2AuthorizationCode,
+  OAuth2Client,
   OAuth2Model,
   OAuth2Scope,
+  OAuth2Token,
 } from "./src/types.ts";
 
+export { ClientSecretBasic } from "./src/client_auth_methods/client_secret_basic.ts";
+export { ClientSecretPost } from "./src/client_auth_methods/client_secret_post.ts";
+export { NoneAuthMethod } from "./src/client_auth_methods/none.ts";
 export {
-    ClientSecretBasic
-} from './src/client_auth_methods/client_secret_basic.ts';
+  ClientSecretJwt,
+  ClientSecretJwtAlgorithms,
+} from "./src/client_auth_methods/client_secret_jwt.ts";
 export {
-    ClientSecretPost
-} from './src/client_auth_methods/client_secret_post.ts';
-export {
-    NoneAuthMethod
-} from './src/client_auth_methods/none.ts';
-export {
-    ClientSecretJwt,
-    ClientSecretJwtAlgorithms
-} from './src/client_auth_methods/client_secret_jwt.ts';
-export {
-    PrivateKeyJwt,
-    PrivateKeyJwtAlgorithms
-} from './src/client_auth_methods/private_key_jwt.ts';
-export type { ClientAuthMethod, ClientAuthMethodResponse, TokenEndpointAuthMethod } from './src/client_auth_methods/types.ts';
+  PrivateKeyJwt,
+  PrivateKeyJwtAlgorithms,
+} from "./src/client_auth_methods/private_key_jwt.ts";
+export type {
+  ClientAuthMethod,
+  ClientAuthMethodResponse,
+  TokenEndpointAuthMethod,
+} from "./src/client_auth_methods/types.ts";
 
-export type{
-  OAuth2AuthFlowOptions,
-  OAuth2AuthFlowTokenResponse
-} from './src/grants/auth_flow.ts';
-export {
-  OAuth2AuthFlow
-} from './src/grants/auth_flow.ts';
+export type { OAuth2AuthFlowOptions, OAuth2AuthFlowTokenResponse } from "./src/grants/auth_flow.ts";
+export { OAuth2AuthFlow } from "./src/grants/auth_flow.ts";
 export type { AuthorizationCodeGrant } from "./src/grants/authorization_code.ts";
-export type { 
-  ClientCredentialsGrant, 
-  ClientCredentialsGrantContext, 
-  ClientCredentialsTokenRequest, 
-  ClientCredentialsModel, 
-  ClientCredentialsGrantFlowOptions
+export type {
+  ClientCredentialsGrant,
+  ClientCredentialsGrantContext,
+  ClientCredentialsGrantFlowOptions,
+  ClientCredentialsModel,
+  ClientCredentialsTokenRequest,
 } from "./src/grants/client_credentials.ts";
 export { ClientCredentialsGrantFlow } from "./src/grants/client_credentials.ts";
 export type { RefreshTokenGrant } from "./src/grants/refresh_token.ts";
@@ -77,32 +70,32 @@ export type { RefreshTokenGrant } from "./src/grants/refresh_token.ts";
 export { BearerTokenType, type BearerTokenValidation } from "./src/token_types/bearer_token.ts";
 export type { TokenType, TokenTypeValidationResponse } from "./src/token_types/types.ts";
 export type {
-  JwtAuthority,
-  JwtPayload,
-  JwtVerifier,
   JwksKeyStore,
   JwksRotationTimestampStore,
   JwksRotatorOptions,
-  JwtSigner, 
+  JwtAuthority,
+  JwtPayload,
+  JwtSigner,
+  JwtVerifier,
   KeyGenerator,
+  RawKey,
   RSA,
-  RawKey
- } from './src/utils/jwt_authority.ts';
+} from "./src/utils/jwt_authority.ts";
 export { JwksRotator } from "./src/utils/jwt_authority.ts";
-export type { 
+export type {
   AppCredentials,
   AuthCredentials,
-  StrategyResult,
-  UserCredentials,
   StrategyOptions,
-  StrategyVerifyTokenFunction
+  StrategyResult,
+  StrategyVerifyTokenFunction,
+  UserCredentials,
 } from "./src/strategy.ts";
-export { 
+export {
   evaluateStrategy,
-  StrategyInvalidTokenError,
-  StrategyJwtVerificationError,
-  StrategyInvalidTokenTypeError,
+  StrategyError,
   StrategyInsufficientScopeError,
   StrategyInternalError,
-  StrategyError 
- } from "./src/strategy.ts";
+  StrategyInvalidTokenError,
+  StrategyInvalidTokenTypeError,
+  StrategyJwtVerificationError,
+} from "./src/strategy.ts";

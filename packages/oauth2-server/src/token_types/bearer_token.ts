@@ -2,7 +2,7 @@ import type { TokenType, TokenTypeValidationResponse } from "./types.ts";
 
 export type BearerTokenValidation = (
   request: Request,
-  token: string
+  token: string,
 ) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
 
 export class BearerTokenType implements TokenType {
@@ -18,7 +18,10 @@ export class BearerTokenType implements TokenType {
     return this;
   }
 
-  isValid(request: Request, token: string): Promise<TokenTypeValidationResponse> | TokenTypeValidationResponse {
+  isValid(
+    request: Request,
+    token: string,
+  ): Promise<TokenTypeValidationResponse> | TokenTypeValidationResponse {
     return this.#handler(request, token);
   }
 }

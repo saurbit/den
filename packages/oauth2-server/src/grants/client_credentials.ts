@@ -3,7 +3,7 @@ import {
   InvalidRequestError,
   ServerError,
   UnauthorizedClientError,
-  UnsupportedGrantTypeError
+  UnsupportedGrantTypeError,
 } from "../errors.ts";
 import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 import type { OAuth2Client } from "../types.ts";
@@ -20,7 +20,7 @@ export interface ClientCredentialsGrant {
 }
 
 /**
- * Validation context for client credentials grant, 
+ * Validation context for client credentials grant,
  * which can be used by the model's generateAccessToken() method
  * to generate tokens with appropriate scopes, lifetimes, etc.
  */
@@ -62,13 +62,13 @@ export interface ClientCredentialsModel {
  */
 export interface ClientCredentialsGrantFlowOptions extends OAuth2AuthFlowOptions {
   model: ClientCredentialsModel;
-  strategyOptions: Omit<StrategyOptions, 'tokenType'>;
+  strategyOptions: Omit<StrategyOptions, "tokenType">;
 }
 
 export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements ClientCredentialsGrant {
   readonly grantType = "client_credentials" as const;
   readonly #model: ClientCredentialsModel;
-  readonly #strategyOptions: Omit<StrategyOptions, 'tokenType'>;
+  readonly #strategyOptions: Omit<StrategyOptions, "tokenType">;
 
   constructor(options: ClientCredentialsGrantFlowOptions) {
     const { model, strategyOptions, ...flowOptions } = { ...options };
@@ -81,10 +81,9 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
    * Handle a token request for the client credentials grant type.
    * Validates the client credentials and generates an access token if valid.
    * Returns an appropriate error response if validation fails.
-   * @param request The incoming HTTP request. 
+   * @param request The incoming HTTP request.
    */
   async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
-
     if (request.method !== "POST") {
       return { success: false, error: new InvalidRequestError("Method Not Allowed") };
     }
@@ -98,7 +97,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
       const form = await request.formData();
       body = {
         grant_type: form.get("grant_type"),
-        scope: form.get("scope")
+        scope: form.get("scope"),
       };
     } else if (contentType.includes("application/json")) {
       body = request.json ? await request.json() : null;
@@ -106,12 +105,12 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
       return { success: false, error: new InvalidRequestError("Unsupported Media Type") };
     }
 
-    if (body && typeof body === 'object') {
-      if ('grant_type' in body) {
-        grantTypeInBody = typeof body.grant_type === 'string' ? body.grant_type : undefined;
+    if (body && typeof body === "object") {
+      if ("grant_type" in body) {
+        grantTypeInBody = typeof body.grant_type === "string" ? body.grant_type : undefined;
       }
-      if ('scope' in body) {
-        scopesInBody = typeof body.scope === 'string' ? body.scope.split(' ') : undefined;
+      if ("scope" in body) {
+        scopesInBody = typeof body.scope === "string" ? body.scope.split(" ") : undefined;
       }
     }
 
@@ -124,12 +123,11 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
     const { clientId, clientSecret, error } = await this.extractClientCredentials(
       request,
       this.clientAuthMethods,
-      this.getTokenEndpointAuthMethods()
+      this.getTokenEndpointAuthMethods(),
     );
 
     // If the request contains client authentication credentials, validate them
     if (!error) {
-
       // If clientId or clientSecret is missing, return 401 error
       if (!clientId || !clientSecret) {
         return { success: false, error: new InvalidClientError("Invalid client credentials") };
@@ -139,13 +137,13 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
         clientId,
         clientSecret,
         grantType: grantTypeInBody,
-        scopes: scopesInBody
+        scopes: scopesInBody,
       };
 
       // Validate client credentials using the model's getClient() method
       const client = await this.#model.getClient(
         // avoid mutation
-        { ...tokenRequest, scopes: tokenRequest.scopes ? [...tokenRequest.scopes] : [] }
+        { ...tokenRequest, scopes: tokenRequest.scopes ? [...tokenRequest.scopes] : [] },
       );
 
       // If client authentication fails, return 401 error
@@ -155,14 +153,18 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
 
       // validate that client is allowed to use client credentials grant type
       if (!client.grants || !client.grants.includes(this.grantType)) {
-        return { success: false, error: new UnauthorizedClientError("Unauthorized client for this grant type") };
+        return {
+          success: false,
+          error: new UnauthorizedClientError("Unauthorized client for this grant type"),
+        };
       }
 
       // Validate scope if provided in the request body (optional)
       let validatedScopes: string[];
       if (tokenRequest.scopes && client.scopes) {
         const allowedScopes = client.scopes ? client.scopes : [];
-        validatedScopes = tokenRequest.scopes?.filter(scope => allowedScopes.includes(scope)) || [];
+        validatedScopes = tokenRequest.scopes?.filter((scope) => allowedScopes.includes(scope)) ||
+          [];
       } else {
         validatedScopes = [];
       }
@@ -173,15 +175,15 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
         grantType: grantTypeInBody,
         scopes: validatedScopes,
         tokenType: this.tokenType,
-        accessTokenLifetime: this.accessTokenLifetime
+        accessTokenLifetime: this.accessTokenLifetime,
       };
 
-      // generate access token from client, valid scope, 
-      // and any other relevant information, 
+      // generate access token from client, valid scope,
+      // and any other relevant information,
       // using the model's generateAccessToken() and generateRefreshToken() methods
       const accessToken = await this.#model.generateAccessToken?.(
         // avoid mutation
-        { ...grantContext, scopes: [...grantContext.scopes] }
+        { ...grantContext, scopes: [...grantContext.scopes] },
       );
 
       // If token generation fails
@@ -195,8 +197,8 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
           access_token: accessToken,
           token_type: this.tokenType,
           expires_in: grantContext.accessTokenLifetime,
-          scope: grantContext.scopes.join(' ')
-        }
+          scope: grantContext.scopes.join(" "),
+        },
       };
     }
 
@@ -208,21 +210,24 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
    * @param request
    */
   async authorize(request: Request): Promise<StrategyResult> {
-    return await evaluateStrategy(request, { ...this.#strategyOptions, tokenType: this._tokenType });
+    return await evaluateStrategy(request, {
+      ...this.#strategyOptions,
+      tokenType: this._tokenType,
+    });
   }
 
   toOpenAPISecurityScheme({ tokenUrl }: { tokenUrl: string }) {
     return {
       [this.getSecuritySchemeName()]: {
-        type: 'oauth2' as const,
+        type: "oauth2" as const,
         description: this.getDescription(),
         flows: {
           clientCredentials: {
             scopes: this.getScopes() || {},
-            tokenUrl
-          }
-        }
-      }
-    }
+            tokenUrl,
+          },
+        },
+      },
+    };
   }
 }
