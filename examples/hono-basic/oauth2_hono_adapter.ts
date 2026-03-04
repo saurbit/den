@@ -70,9 +70,13 @@ export interface FailedAuthorizationAction<E extends Env = Env> {
   (context: Context<E & OAuth2ServerEnv>, error: StrategyError): Promise<void> | void;
 }
 
+export interface HonoStrategyOptionsWithFailedAuth<E extends Env = Env> extends Omit<HonoStrategyOptions<E>, 'tokenType'> {
+  failedAuthorizationAction?: FailedAuthorizationAction<E>;
+}
+
 export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
   extends Omit<ClientCredentialsGrantFlowOptions, "strategyOptions"> {
-  strategyOptions: Omit<HonoStrategyOptions<E>, 'tokenType'> & { failedAuthorizationAction?: FailedAuthorizationAction<E> };
+  strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
 }
 
 export class HonoClientCredentialsGrantFlow<

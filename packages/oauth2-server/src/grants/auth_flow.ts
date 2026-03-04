@@ -392,5 +392,26 @@ export abstract class OAuth2AuthFlow {
     }
         */
 
+    toOpenAPIPathItem(scopes?: string[]) {
+        return {
+            [this.getSecuritySchemeName()]: scopes || []
+        }
+    }
+
+    /**
+     * Handle a token request for the specific grant type.
+     * @param request The incoming HTTP request.
+     * @returns The token response, which can be either a success with the token response body or a failure with an error.
+     */
     abstract token(request: Request): Promise<OAuth2AuthFlowTokenResponse>;
+
+    /**
+     * Convert the grant flow to an OpenAPI security scheme object.
+     * @param options Options for generating the OpenAPI security scheme.
+     */
+    abstract toOpenAPISecurityScheme(options?: {
+        authorizationUrl?: string;
+        tokenUrl?: string;
+        refreshUrl?: string;
+    }): Record<string, unknown>;
 }

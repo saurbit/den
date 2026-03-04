@@ -210,4 +210,19 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
   async authorize(request: Request): Promise<StrategyResult> {
     return await evaluateStrategy(request, { ...this.#strategyOptions, tokenType: this._tokenType });
   }
+
+  toOpenAPISecurityScheme({ tokenUrl }: { tokenUrl: string }) {
+    return {
+      [this.getSecuritySchemeName()]: {
+        type: 'oauth2' as const,
+        description: this.getDescription(),
+        flows: {
+          clientCredentials: {
+            scopes: this.getScopes() || {},
+            tokenUrl
+          }
+        }
+      }
+    }
+  }
 }

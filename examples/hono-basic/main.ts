@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { type } from 'arktype'
-import { OpenAPIV3 } from "openapi-types";
 import {
   validator as arktypeValidator,
   resolver,
@@ -10,7 +9,7 @@ import {
 import { swaggerUI } from '@hono/swagger-ui'
 
 import {
-StrategyInternalError,
+  StrategyInternalError,
   UnauthorizedClientError,
   UnsupportedGrantTypeError
 } from "@saurbit/oauth2-server";
@@ -112,17 +111,6 @@ clientCredentialsFlow
     "admin": "Admin access"
   });
 
-const securityScheme: OpenAPIV3.SecuritySchemeObject = {
-  type: 'oauth2',
-  description: clientCredentialsFlow.getDescription(),
-  flows: {
-    clientCredentials: {
-      scopes: clientCredentialsFlow.getScopes() || {},
-      tokenUrl: '/token'
-    }
-  }
-}
-
 const app = new Hono();
 
 app.get("/", describeRoute({}), (c) => {
@@ -143,21 +131,12 @@ app.post(
   '/author',
 
   // Apply the authentication middleware to this route
-  clientCredentialsFlow.authorizeMiddleware(['content:write']),
+  clientCredentialsFlow.authorizeMiddleware(['content:read', 'content:write']),
 
   //
   describeRoute({
     security: [
-      /*
-      {
-        bearerAuth: [],
-      },
-      */
-      {
-        [clientCredentialsFlow.getSecuritySchemeName()]: [
-          'content:write'
-        ],
-      },
+      clientCredentialsFlow.toOpenAPIPathItem(['content:read', 'content:write'])
     ],
     responses: {
       200: {
@@ -211,12 +190,7 @@ app.get(
       },
       components: {
         securitySchemes: {
-          bearerAuth: {
-            type: "http",
-            scheme: "bearer",
-            bearerFormat: "JWT",
-          },
-          [clientCredentialsFlow.getSecuritySchemeName()]: securityScheme
+          ...clientCredentialsFlow.toOpenAPISecurityScheme({ tokenUrl: '/token' })
         },
       }
     },
