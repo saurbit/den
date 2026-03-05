@@ -28,7 +28,7 @@ export interface AuthorizationCodeGrant {
 /**
  * Validation context for authorization code grant,
  * which can be used by the model's generateAccessToken() method
- * to generate tokens with appropriate scopes, lifetimes, etc.
+ * to generate tokens with appropriate lifetimes, etc.
  */
 export interface AuthorizationCodeGrantContext {
   client: OAuth2Client;
@@ -55,13 +55,13 @@ export interface AuthorizationCodeTokenRequest {
 /**
  * Validation context for authorization code authentication (authorization endpoint request),
  * which can be used by the model's generateAuthorizationCode() method
- * to generate an authorization code with appropriate scopes, etc.
+ * to generate an authorization code with appropriate scope, etc.
  */
 export interface AuthorizationCodeEndpointContext {
   client: OAuth2Client;
   responseType: "code"; // should be "code" for authorization code grant
   redirectUri: string;
-  scopes: string[];
+  scope: string[];
   state?: string;
   codeChallenge?: string;
   nonce?: string;
@@ -74,7 +74,7 @@ export interface AuthorizationCodeEndpointRequest {
   clientId: string;
   responseType: "code"; // should be "code" for authorization code grant
   redirectUri: string;
-  scopes?: string[];
+  scope?: string[];
   state?: string;
   codeChallenge?: string;
   nonce?: string;
@@ -83,7 +83,7 @@ export interface AuthorizationCodeEndpointRequest {
 export interface AuthorizationCodeEndpointResponseParams {
   client: OAuth2Client;
   redirectUri: string;
-  scopes: string[];
+  scope: string[];
   code: string;
   state?: string;
   error?: never;
@@ -169,7 +169,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
       clientId,
       responseType,
       redirectUri,
-      scopes: scope ? scope.split(" ") : undefined,
+      scope: scope ? scope.split(" ") : undefined,
       state,
       codeChallenge,
       nonce,
@@ -200,7 +200,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
         client,
         responseType,
         redirectUri,
-        scopes: scope ? scope.split(" ") : [],
+        scope: scope ? scope.split(" ") : [],
         state,
         codeChallenge,
         nonce,
@@ -225,7 +225,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
         codeResponse: {
           client,
           redirectUri,
-          scopes: validatedScopes,
+          scope: validatedScopes,
           code,
           state,
         },
@@ -350,7 +350,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
         };
       }
 
-      // Validate client metadata such as scopes, etc, ..., if applicable for client credentials grant
+      // Validate client metadata such as code, etc, ..., if applicable for client credentials grant
       const grantContext: AuthorizationCodeGrantContext = {
         client: client,
         grantType: grantTypeInBody,

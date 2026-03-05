@@ -7,6 +7,44 @@ import { HTTPException } from "hono/http-exception";
 
 export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
   model: {
+
+    // -- at authorization endpoint
+
+    getClientForAuthentication: async ({
+      clientId,
+      redirectUri,
+      responseType: _rt,
+      codeChallenge: _cc,
+      nonce: _n,
+      state: _s,
+      scope: _scope,
+    }) => {
+      console.log("getClientForAuthentication called with:", { clientId, redirectUri, responseType: _rt, codeChallenge: _cc, nonce: _n, state: _s, scopes: _scope });
+      if (clientId === "my-client") {
+        return await Promise.resolve({
+          id: "my-client",
+          redirectUris: ["http://localhost/callback"],
+          grants: ["authorization_code"],
+          scopes: ["content:read", "content:write"],
+        });
+      }
+    },
+    generateAuthorizationCode: async ({
+      client: _c,
+      redirectUri: _r,
+      responseType: _rt,
+      codeChallenge: _cc,
+      nonce: _n,
+      scope,
+      state: _s,
+    }) => {
+      console.log("generateAuthorizationCode called with:", { client: _c, redirectUri: _r, scope });
+      // In a real implementation, you would generate a secure code here and associate it with the client, redirect URI, scope, and user
+      return await Promise.resolve("authcode-" + scope.join(","));
+    },
+
+    // -- at token endpoint
+
     getClient: async ({
       clientId,
       clientSecret: _c,
@@ -35,38 +73,6 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
       });
       // In a real implementation, you would generate a secure token here
       return await Promise.resolve("admin-");
-    },
-    getClientForAuthentication: async ({
-      clientId,
-      redirectUri,
-      responseType: _rt,
-      codeChallenge: _cc,
-      nonce: _n,
-      state: _s,
-      scopes: _scopes,
-    }) => {
-      console.log("getClientForAuthentication called with:", { clientId, redirectUri, responseType: _rt, codeChallenge: _cc, nonce: _n, state: _s, scopes: _scopes });
-      if (clientId === "my-client") {
-        return await Promise.resolve({
-          id: "my-client",
-          redirectUris: ["http://localhost/callback"],
-          grants: ["authorization_code"],
-          scopes: ["content:read", "content:write"],
-        });
-      }
-    },
-    generateAuthorizationCode: async ({
-      client: _c,
-      redirectUri: _r,
-      responseType: _rt,
-      codeChallenge: _cc,
-      nonce: _n,
-      scopes,
-      state: _s,
-    }) => {
-      console.log("generateAuthorizationCode called with:", { client: _c, redirectUri: _r, scopes });
-      // In a real implementation, you would generate a secure code here and associate it with the client, redirect URI, scope, and user
-      return await Promise.resolve("authcode-" + scopes.join(","));
     },
   },
   strategyOptions: {

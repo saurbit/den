@@ -11,9 +11,9 @@ export const clientCredentialsFlow = new HonoClientCredentialsGrantFlow({
       clientId,
       clientSecret: _c,
       grantType: _g,
-      scopes: _s,
+      scope: _s,
     }) => {
-      console.log("getClient called with:", { clientId, grantType: _g, scopes: _s });
+      console.log("getClient called with:", { clientId, grantType: _g, scope: _s });
       if (clientId === "my-client") {
         return await Promise.resolve({
           id: "my-client",
@@ -27,17 +27,17 @@ export const clientCredentialsFlow = new HonoClientCredentialsGrantFlow({
       accessTokenLifetime: _a,
       client: _c,
       grantType: _g,
-      scopes,
+      scope,
       tokenType: _t,
     }) => {
       console.log("generateAccessToken called with:", {
         client: _c,
         grantType: _g,
-        scopes,
+        scope,
         tokenType: _t,
       });
       // In a real implementation, you would generate a secure token here
-      return await Promise.resolve("admin-" + scopes.join(","));
+      return await Promise.resolve("admin-" + scope.join(","));
     },
   },
   strategyOptions: {

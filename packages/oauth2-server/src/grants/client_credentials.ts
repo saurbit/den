@@ -27,12 +27,12 @@ export interface ClientCredentialsGrant {
 /**
  * Validation context for client credentials grant,
  * which can be used by the model's generateAccessToken() method
- * to generate tokens with appropriate scopes, lifetimes, etc.
+ * to generate tokens with appropriate scope, lifetimes, etc.
  */
 export interface ClientCredentialsGrantContext {
   client: OAuth2Client;
   grantType: string;
-  scopes: string[];
+  scope: string[];
   tokenType: string;
   accessTokenLifetime: number;
 }
@@ -44,7 +44,7 @@ export interface ClientCredentialsTokenRequest {
   clientId: string;
   clientSecret: string;
   grantType: string;
-  scopes?: string[];
+  scope?: string[];
 }
 
 /**
@@ -145,13 +145,13 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
         clientId,
         clientSecret,
         grantType: grantTypeInBody,
-        scopes: scopesInBody,
+        scope: scopesInBody,
       };
 
       // Validate client credentials using the model's getClient() method
       const client = await this.#model.getClient(
         // avoid mutation
-        { ...tokenRequest, scopes: tokenRequest.scopes ? [...tokenRequest.scopes] : [] },
+        { ...tokenRequest, scope: tokenRequest.scope ? [...tokenRequest.scope] : [] },
       );
 
       // If client authentication fails, return 401 error
@@ -169,19 +169,19 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
 
       // Validate scope if provided in the request body (optional)
       let validatedScopes: string[];
-      if (tokenRequest.scopes && client.scopes) {
+      if (tokenRequest.scope && client.scopes) {
         const allowedScopes = client.scopes ? client.scopes : [];
-        validatedScopes = tokenRequest.scopes?.filter((scope) => allowedScopes.includes(scope)) ||
+        validatedScopes = tokenRequest.scope?.filter((scope) => allowedScopes.includes(scope)) ||
           [];
       } else {
         validatedScopes = [];
       }
 
-      // Validate client metadata such as scopes, etc, ..., if applicable for client credentials grant
+      // Validate client metadata such as scope, etc, ..., if applicable for client credentials grant
       const grantContext: ClientCredentialsGrantContext = {
         client: client,
         grantType: grantTypeInBody,
-        scopes: validatedScopes,
+        scope: validatedScopes,
         tokenType: this.tokenType,
         accessTokenLifetime: this.accessTokenLifetime,
       };
@@ -191,7 +191,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
       // using the model's generateAccessToken() and generateRefreshToken() methods
       const accessToken = await this.#model.generateAccessToken?.(
         // avoid mutation
-        { ...grantContext, scopes: [...grantContext.scopes] },
+        { ...grantContext, scope: [...grantContext.scope] },
       );
 
       // If token generation fails
@@ -205,7 +205,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
           access_token: accessToken,
           token_type: this.tokenType,
           expires_in: grantContext.accessTokenLifetime,
-          scope: grantContext.scopes.join(" "),
+          scope: grantContext.scope.join(" "),
         },
       };
     }
