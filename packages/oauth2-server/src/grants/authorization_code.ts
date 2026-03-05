@@ -15,6 +15,14 @@ import {
   OAuth2GrantModel,
 } from "./auth_flow.ts";
 
+export interface AuthorizationCodeUser {
+  [key: string]: unknown;
+}
+
+export interface AuthorizationCodeReqBody {
+  [key: string]: unknown;
+}
+
 /**
  * Handles the Authorization Code grant type.
  *
@@ -91,6 +99,7 @@ export interface AuthorizationCodeEndpointRequest {
 }
 
 export interface AuthorizationCodeEndpointResponseParams {
+  user: AuthorizationCodeUser;
   client: OAuth2Client;
   redirectUri: string;
   scope: string[];
@@ -107,38 +116,52 @@ export interface AuthorizationCodeEndpointResponseParams {
 }
 
 export type AuthorizationCodeEndpointResponse =
-  | { success: true }
-  | { success: true; codeResponse: AuthorizationCodeEndpointResponseParams }
-  | { success: false; error: OAuth2Error; state?: string };
+  | { success: true; method: "GET"; context: AuthorizationCodeEndpointContext; }
+  | { success: true; method: "POST"; authorizationCodeResponse: AuthorizationCodeEndpointResponseParams }
+  | { success: false; error: OAuth2Error; };
+
+export type AuthorizationCodeInitiationResponse =
+  | { success: true; context: AuthorizationCodeEndpointContext; }
+  | { success: false; error: OAuth2Error; };
+
+export type AuthorizationCodeProcessResponse =
+  | { success: true; authorizationCodeResponse: AuthorizationCodeEndpointResponseParams; }
+  | { success: false; error: OAuth2Error; };
 
 /**
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the authorization code grant.
  */
-export interface AuthorizationCodeModel
+export interface AuthorizationCodeModel<AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody>
   extends OAuth2GrantModel<AuthorizationCodeTokenRequest, AuthorizationCodeGrantContext> {
   getClientForAuthentication(
     authRequest: AuthorizationCodeEndpointRequest,
   ): Promise<OAuth2Client | undefined>;
 
-  generateAuthorizationCode(context: AuthorizationCodeEndpointContext): Promise<string | undefined>;
+  getUserForAuthentication(
+    context: AuthorizationCodeEndpointContext,
+    reqBody: AuthReqBody,
+    request: Request
+  ): Promise<AuthorizationCodeUser | undefined>;
+
+  generateAuthorizationCode(context: AuthorizationCodeEndpointContext, user: AuthorizationCodeUser): Promise<string | undefined>;
 }
 
 /**
  * Options for configuring the authorization code grant flow.
  */
-export interface AuthorizationCodeGrantFlowOptions extends OAuth2AuthFlowOptions {
-  model: AuthorizationCodeModel;
+export interface AuthorizationCodeGrantFlowOptions<AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody> extends OAuth2AuthFlowOptions {
+  model: AuthorizationCodeModel<AuthReqBody>;
   authorizationUrl?: string;
 }
 
-export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements AuthorizationCodeGrant {
+export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody> extends OAuth2AuthFlow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
   readonly #model: AuthorizationCodeModel;
 
   protected authorizationUrl: string = "/authorize";
 
-  constructor(options: AuthorizationCodeGrantFlowOptions) {
+  constructor(options: AuthorizationCodeGrantFlowOptions<AuthReqBody>) {
     const { model, authorizationUrl, ...flowOptions } = { ...options };
     super(flowOptions);
     this.#model = model;
@@ -156,7 +179,10 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
     return this.authorizationUrl;
   }
 
-  async handleAuthorizationEndpoint(request: Request): Promise<AuthorizationCodeEndpointResponse> {
+  async getAuthorizationCodeEndpointContext(request: Request): Promise<
+    | { success: true; context: AuthorizationCodeEndpointContext }
+    | { success: false; error: OAuth2Error; }
+  > {
     const query = new URL(request.url).searchParams;
     const clientId = query.get("client_id") || undefined;
     const responseType = query.get("response_type") || undefined;
@@ -198,12 +224,114 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
       };
     }
 
+    // Validate scope if provided in the request body (optional)
+    let validatedScopes: string[];
+    if (client.scopes) {
+      const allowedScopes = client.scopes ? client.scopes : [];
+      validatedScopes = scope?.split(" ")?.filter((scope) => allowedScopes.includes(scope)) ||
+        [];
+    } else {
+      validatedScopes = [];
+    }
+
+    return {
+      success: true,
+      context: {
+        client,
+        responseType,
+        redirectUri,
+        scope: validatedScopes,
+        state,
+        codeChallenge,
+        nonce
+      }
+    }
+  }
+
+  async initiateAuthorization(request: Request): Promise<AuthorizationCodeInitiationResponse> {
+    if (request.method !== "GET") {
+      return { success: false, error: new InvalidRequestError("Method Not Allowed") };
+    }
+
+    return await this.getAuthorizationCodeEndpointContext(request)
+  }
+
+  async processAuthorization(request: Request, reqBody: AuthReqBody): Promise<AuthorizationCodeProcessResponse> {
+    if (request.method !== "POST") {
+      return { success: false, error: new InvalidRequestError("Method Not Allowed") };
+    }
+
+    const context = await this.getAuthorizationCodeEndpointContext(request)
+
+    if (!context.success) {
+      return context
+    }
+
+    const { client, responseType, redirectUri, scope, state, codeChallenge, nonce } = context.context;
+
+    const user = await this.#model.getUserForAuthentication({
+      client,
+      responseType,
+      redirectUri,
+      scope: [...scope],
+      state,
+      codeChallenge,
+      nonce,
+    },
+      reqBody,
+      request
+    );
+
+    if (!user) {
+      return {
+        success: false,
+        error: new InvalidClientError("Invalid user credentials")
+      };
+    }
+
+    const code = await this.#model.generateAuthorizationCode({
+      client,
+      responseType,
+      redirectUri,
+      scope: [...scope],
+      state,
+      codeChallenge,
+      nonce,
+    }, user);
+
+    if (!code) {
+      return { success: false, error: new ServerError("Failed to generate authorization code") };
+    }
+
+    return {
+      success: true,
+      authorizationCodeResponse: {
+        client,
+        user,
+        redirectUri,
+        scope: [...scope],
+        code,
+        state,
+        nonce,
+      },
+    };
+  }
+
+  async handleAuthorizationEndpoint(request: Request, reqBody: AuthReqBody): Promise<AuthorizationCodeEndpointResponse> {
+
     if (request.method === "GET") {
       // In a real implementation, you would render a login page
       // or consent page here for the user
       // to authenticate and authorize the client.
+      const result = await this.initiateAuthorization(request);
+
+      if (!result.success) {
+        return result
+      }
+
       return {
-        success: true,
+        ...result,
+        method: 'GET'
       };
     }
 
@@ -212,40 +340,15 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
       // and if authentication is successful, generate an authorization code,
       // and redirect the user to the redirect_uri with the code and state as query parameters.
 
-      const code = await this.#model.generateAuthorizationCode({
-        client,
-        responseType,
-        redirectUri,
-        scope: scope ? scope.split(" ") : [],
-        state,
-        codeChallenge,
-        nonce,
-      });
+      const result = await this.processAuthorization(request, reqBody);
 
-      if (!code) {
-        return { success: false, error: new ServerError("Failed to generate authorization code") };
-      }
-
-      // Validate scope if provided in the request body (optional)
-      let validatedScopes: string[];
-      if (client.scopes) {
-        const allowedScopes = client.scopes ? client.scopes : [];
-        validatedScopes = scope?.split(" ")?.filter((scope) => allowedScopes.includes(scope)) ||
-          [];
-      } else {
-        validatedScopes = [];
+      if (!result.success) {
+        return result
       }
 
       return {
-        success: true,
-        codeResponse: {
-          client,
-          redirectUri,
-          scope: validatedScopes,
-          code,
-          state,
-          nonce,
-        },
+        ...result,
+        method: 'POST'
       };
     }
 

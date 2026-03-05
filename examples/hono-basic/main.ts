@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { type } from "arktype";
+
 import {
   describeRoute,
   openAPIRouteHandler,
@@ -14,6 +15,7 @@ import {
 } from "@saurbit/oauth2-server";
 
 import { clientCredentialsFlow } from "./impl/client_credentials.ts";
+import { authorizationCodeFlow, HtmlFormContent, HTTPRateLimitException } from "./impl/authorization_code.ts";
 
 const app = new Hono();
 
@@ -40,6 +42,42 @@ app.get(
     return c.json({ message: "Hello from Hono!" });
   },
 );
+
+app.get('/authorize', async (c) => {
+  const result = await authorizationCodeFlow.handleAuthorizationEndpointFromHono(c);
+  if (result.success) {
+    return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password" }));
+  } else {
+    const error = result.error;
+    console.log("Authorization endpoint error:", { error: error.name, message: error.message });
+    return c.json({ error: "invalid_request" }, 400);
+  }
+});
+
+app.post('/authorize',
+  async (c) => {
+    try {
+      const result = await authorizationCodeFlow.processAuthorizationFromHono(c);
+      if (result.success) {
+        const { user } = result.authorizationCodeResponse
+        // Here you would typically validate the user's credentials and then proceed with the authorization process
+        // For this example, we'll just log the form data and return a success message
+        return c.json({
+          message: `User ${user.username} authorized successfully!`,
+        });
+      } else {
+        const error = result.error;
+        console.log("Authorization endpoint error:", { error: error.name, message: error.message });
+        return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password", errorMessage: error.message }), 400);
+      }
+    } catch(error) {
+      if (error instanceof HTTPRateLimitException) {
+        return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password", errorMessage: error.message }), 429);
+      }
+      console.log("Unexpected error at authorization endpoint:", { error: error instanceof Error ? { name: error.name, message: error.message } : error });
+      return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password", errorMessage: "An unexpected error occurred. Please try again later." }), 500);
+    }
+  });
 
 const schema = type({
   name: "string",
@@ -116,6 +154,7 @@ app.get(
       },
       components: {
         securitySchemes: {
+          ...authorizationCodeFlow.toOpenAPISecurityScheme(),
           ...clientCredentialsFlow.toOpenAPISecurityScheme(),
         },
       },
