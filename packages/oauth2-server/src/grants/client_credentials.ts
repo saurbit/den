@@ -5,7 +5,6 @@ import {
   UnauthorizedClientError,
   UnsupportedGrantTypeError,
 } from "../errors.ts";
-import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client } from "../types.ts";
 import {
@@ -60,19 +59,16 @@ export interface ClientCredentialsModel
  */
 export interface ClientCredentialsGrantFlowOptions extends OAuth2AuthFlowOptions {
   model: ClientCredentialsModel;
-  strategyOptions: Omit<StrategyOptions, "tokenType">;
 }
 
 export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements ClientCredentialsGrant {
   readonly grantType = "client_credentials" as const;
   readonly #model: ClientCredentialsModel;
-  readonly #strategyOptions: Omit<StrategyOptions, "tokenType">;
 
   constructor(options: ClientCredentialsGrantFlowOptions) {
-    const { model, strategyOptions, ...flowOptions } = { ...options };
+    const { model, ...flowOptions } = { ...options };
     super(flowOptions);
     this.#model = model;
-    this.#strategyOptions = strategyOptions;
   }
 
   /**
@@ -215,17 +211,6 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
     }
 
     return { success: false, error };
-  }
-
-  /**
-   * Verifies the token grants access
-   * @param request
-   */
-  async verifyToken(request: Request): Promise<StrategyResult> {
-    return await evaluateStrategy(request, {
-      ...this.#strategyOptions,
-      tokenType: this._tokenType,
-    });
   }
 
   toOpenAPISecurityScheme() {

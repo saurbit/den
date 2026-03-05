@@ -11,6 +11,7 @@ import {
 } from "../client_auth_methods/mod.ts";
 //import { JwtAuthority } from "../utils/jwt_authority.ts";
 import { OAuth2Client, OAuth2TokenResponseBody } from "../types.ts";
+import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 
 export type OAuth2AuthFlowTokenResponse =
   | { success: true; tokenResponse: OAuth2TokenResponseBody }
@@ -25,6 +26,7 @@ export interface OAuth2AuthFlowOptions {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options?: OAuth2AuthOptions<any>;
     */
+  strategyOptions: Omit<StrategyOptions, "tokenType">;
   securitySchemeName?: string;
   accessTokenLifetime?: number;
   tokenUrl?: string;
@@ -43,6 +45,8 @@ export interface OAuth2GrantModel<TTokenRequest, TGrantContext> {
 
 export abstract class OAuth2AuthFlow {
   abstract readonly grantType: string;
+
+  readonly strategyOptions: Omit<StrategyOptions, "tokenType">;
 
   protected _clientAuthMethods: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
     client_secret_basic: undefined,
@@ -117,6 +121,11 @@ export abstract class OAuth2AuthFlow {
     }
     if (options?.tokenUrl) {
       this.tokenUrl = options?.tokenUrl;
+    }
+    if (options?.strategyOptions) { 
+      this.strategyOptions = options.strategyOptions;
+    } else {
+      this.strategyOptions = {};
     }
     this.accessTokenLifetime = options?.accessTokenLifetime || 3600;
     //this.options = options?.options ? { ...options.options } : {};
@@ -423,6 +432,17 @@ export abstract class OAuth2AuthFlow {
     }
         */
 
+  /**
+   * Verifies the token grants access
+   * @param request
+   */
+  async verifyToken(request: Request): Promise<StrategyResult> {
+    return await evaluateStrategy(request, {
+      ...this.strategyOptions,
+      tokenType: this._tokenType,
+    });
+  }
+  
   toOpenAPIPathItem(scopes?: string[]) {
     return {
       [this.getSecuritySchemeName()]: scopes || [],

@@ -14,7 +14,7 @@ import {
   UnsupportedGrantTypeError,
 } from "@saurbit/oauth2-server";
 
-import { BearerTokenType, HonoClientCredentialsGrantFlow } from "./oauth2_hono_adapter.ts";
+import { BearerTokenType, HonoClientCredentialsGrantFlow } from "./oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";
 
 const clientCredentialsFlow = new HonoClientCredentialsGrantFlow({

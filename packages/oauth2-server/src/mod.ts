@@ -53,7 +53,18 @@ export type {
 
 export type { OAuth2AuthFlowOptions, OAuth2AuthFlowTokenResponse } from "./grants/auth_flow.ts";
 export { OAuth2AuthFlow } from "./grants/auth_flow.ts";
-export type { AuthorizationCodeGrant } from "./grants/authorization_code.ts";
+export type {
+  AuthorizationCodeEndpointContext,
+  AuthorizationCodeEndpointRequest,
+  AuthorizationCodeEndpointResponse,
+  AuthorizationCodeEndpointResponseParams,
+  AuthorizationCodeGrant,
+  AuthorizationCodeGrantContext,
+  AuthorizationCodeGrantFlowOptions,
+  AuthorizationCodeModel,
+  AuthorizationCodeTokenRequest,
+} from "./grants/authorization_code.ts";
+export { AuthorizationCodeGrantFlow } from "./grants/authorization_code.ts";
 export type {
   ClientCredentialsGrant,
   ClientCredentialsGrantContext,

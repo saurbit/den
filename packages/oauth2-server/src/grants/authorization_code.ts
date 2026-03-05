@@ -6,7 +6,6 @@ import {
   UnauthorizedClientError,
   UnsupportedGrantTypeError,
 } from "../errors.ts";
-import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client } from "../types.ts";
 import {
@@ -116,22 +115,19 @@ export interface AuthorizationCodeModel
  */
 export interface AuthorizationCodeGrantFlowOptions extends OAuth2AuthFlowOptions {
   model: AuthorizationCodeModel;
-  strategyOptions: Omit<StrategyOptions, "tokenType">;
   authorizationUrl?: string;
 }
 
 export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
   readonly #model: AuthorizationCodeModel;
-  readonly #strategyOptions: Omit<StrategyOptions, "tokenType">;
 
   protected authorizationUrl: string = "/authorize";
 
   constructor(options: AuthorizationCodeGrantFlowOptions) {
-    const { model, strategyOptions, authorizationUrl, ...flowOptions } = { ...options };
+    const { model, authorizationUrl, ...flowOptions } = { ...options };
     super(flowOptions);
     this.#model = model;
-    this.#strategyOptions = strategyOptions;
     if (authorizationUrl) {
       this.authorizationUrl = authorizationUrl;
     }
@@ -398,17 +394,6 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
     }
 
     return { success: false, error };
-  }
-
-  /**
-   * Verifies the token grants access
-   * @param request
-   */
-  async verifyToken(request: Request): Promise<StrategyResult> {
-    return await evaluateStrategy(request, {
-      ...this.#strategyOptions,
-      tokenType: this._tokenType,
-    });
   }
 
   toOpenAPISecurityScheme() {
