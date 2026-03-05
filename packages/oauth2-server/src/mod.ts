@@ -44,10 +44,7 @@ export {
   ClientSecretJwt,
   ClientSecretJwtAlgorithms,
 } from "./client_auth_methods/client_secret_jwt.ts";
-export {
-  PrivateKeyJwt,
-  PrivateKeyJwtAlgorithms,
-} from "./client_auth_methods/private_key_jwt.ts";
+export { PrivateKeyJwt, PrivateKeyJwtAlgorithms } from "./client_auth_methods/private_key_jwt.ts";
 export type {
   ClientAuthMethod,
   ClientAuthMethodResponse,

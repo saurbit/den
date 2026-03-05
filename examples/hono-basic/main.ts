@@ -112,8 +112,10 @@ clientCredentialsFlow
 
 const app = new Hono();
 
-app.get("/", describeRoute({
-  responses: {
+app.get(
+  "/",
+  describeRoute({
+    responses: {
       200: {
         description: "Successful response",
         content: {
@@ -128,9 +130,11 @@ app.get("/", describeRoute({
         },
       },
     },
-}), (c) => {
-  return c.json({ message: "Hello from Hono!" });
-});
+  }),
+  (c) => {
+    return c.json({ message: "Hello from Hono!" });
+  },
+);
 
 const schema = type({
   name: "string",
@@ -146,7 +150,6 @@ app.post(
   "/author",
   // Apply the authentication middleware to this route
   clientCredentialsFlow.authorizeMiddleware(["content:read", "content:write"]),
-  
   // Add OpenAPI documentation for this route, including the security requirements and response schema
   describeRoute({
     security: [

@@ -90,7 +90,6 @@ export abstract class OAuth2AuthFlow {
   protected description?: string;
   protected scopes?: Record<string, string>;
 
-
   /*
   protected jwksPublicKeyTtl?: number;
   protected jwksRotationIntervalMs?: number;
@@ -121,7 +120,7 @@ export abstract class OAuth2AuthFlow {
     }
     this.accessTokenLifetime = options?.accessTokenLifetime || 3600;
     //this.options = options?.options ? { ...options.options } : {};
-    
+
     //this.jwksRoute = options?.jwksRoute;
     //this.jwksKeyStore = options?.jwksOptions?.keyStore;
 

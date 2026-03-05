@@ -8,7 +8,12 @@ import {
 import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client } from "../types.ts";
-import { OAuth2AuthFlow, OAuth2AuthFlowOptions, OAuth2AuthFlowTokenResponse, OAuth2GrantModel } from "./auth_flow.ts";
+import {
+  OAuth2AuthFlow,
+  OAuth2AuthFlowOptions,
+  OAuth2AuthFlowTokenResponse,
+  OAuth2GrantModel,
+} from "./auth_flow.ts";
 
 /**
  * Handles the Client Credentials grant type.
@@ -47,7 +52,7 @@ export interface ClientCredentialsTokenRequest {
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the client credentials grant.
  */
-export interface ClientCredentialsModel 
+export interface ClientCredentialsModel
   extends OAuth2GrantModel<ClientCredentialsTokenRequest, ClientCredentialsGrantContext> {}
 
 /**
@@ -127,11 +132,17 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
       }
 
       // e.g. for DPoP token type, we need to validate the token request before validating client credentials
-      const tokenTypeValidationResponse: TokenTypeValidationResponse = this._tokenType.isValidTokenRequest
-        ? await this._tokenType.isValidTokenRequest(request)
-        : { isValid: true };
+      const tokenTypeValidationResponse: TokenTypeValidationResponse =
+        this._tokenType.isValidTokenRequest
+          ? await this._tokenType.isValidTokenRequest(request)
+          : { isValid: true };
       if (!tokenTypeValidationResponse.isValid) {
-        return { success: false, error: new InvalidClientError(tokenTypeValidationResponse.message || "Invalid token request") };
+        return {
+          success: false,
+          error: new InvalidClientError(
+            tokenTypeValidationResponse.message || "Invalid token request",
+          ),
+        };
       }
 
       const tokenRequest: ClientCredentialsTokenRequest = {

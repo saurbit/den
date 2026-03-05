@@ -8,7 +8,12 @@ import {
 import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client } from "../types.ts";
-import { OAuth2AuthFlow, OAuth2AuthFlowOptions, OAuth2AuthFlowTokenResponse, OAuth2GrantModel } from "./auth_flow.ts";
+import {
+  OAuth2AuthFlow,
+  OAuth2AuthFlowOptions,
+  OAuth2AuthFlowTokenResponse,
+  OAuth2GrantModel,
+} from "./auth_flow.ts";
 
 /**
  * Handles the Authorization Code grant type.
@@ -53,7 +58,7 @@ export interface AuthorizationCodeTokenRequest {
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the authorization code grant.
  */
-export interface AuthorizationCodeModel 
+export interface AuthorizationCodeModel
   extends OAuth2GrantModel<AuthorizationCodeTokenRequest, AuthorizationCodeGrantContext> {}
 
 /**
@@ -84,7 +89,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
 
   setAuthorizationUrl(url: string): this {
     this.authorizationUrl = url;
-    return this
+    return this;
   }
 
   getAuthorizationUrl(): string {
@@ -136,7 +141,9 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
         codeInBody = typeof body.code === "string" ? body.code : undefined;
       }
       if ("code_verifier" in body) {
-        codeVerifierInBody = typeof body.code_verifier === "string" ? body.code_verifier : undefined;
+        codeVerifierInBody = typeof body.code_verifier === "string"
+          ? body.code_verifier
+          : undefined;
       }
       if ("redirect_uri" in body) {
         redirectUriInBody = typeof body.redirect_uri === "string" ? body.redirect_uri : undefined;
@@ -167,11 +174,17 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
       }
 
       // e.g. for DPoP token type, we need to validate the token request before validating client credentials
-      const tokenTypeValidationResponse: TokenTypeValidationResponse = this._tokenType.isValidTokenRequest
-        ? await this._tokenType.isValidTokenRequest(request)
-        : { isValid: true };
+      const tokenTypeValidationResponse: TokenTypeValidationResponse =
+        this._tokenType.isValidTokenRequest
+          ? await this._tokenType.isValidTokenRequest(request)
+          : { isValid: true };
       if (!tokenTypeValidationResponse.isValid) {
-        return { success: false, error: new InvalidClientError(tokenTypeValidationResponse.message || "Invalid token request") };
+        return {
+          success: false,
+          error: new InvalidClientError(
+            tokenTypeValidationResponse.message || "Invalid token request",
+          ),
+        };
       }
 
       const tokenRequest: AuthorizationCodeTokenRequest = {
