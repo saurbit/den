@@ -107,7 +107,8 @@ clientCredentialsFlow
     "content:read": "Read content",
     "content:write": "Write content",
     "admin": "Admin access",
-  });
+  })
+  .setTokenUrl("/token"); // Set the token URL for the OpenAPI documentation
 
 const app = new Hono();
 
@@ -207,7 +208,7 @@ app.get(
       },
       components: {
         securitySchemes: {
-          ...clientCredentialsFlow.toOpenAPISecurityScheme({ tokenUrl: "/token" }),
+          ...clientCredentialsFlow.toOpenAPISecurityScheme(),
         },
       },
     },

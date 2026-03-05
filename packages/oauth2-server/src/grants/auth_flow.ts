@@ -9,8 +9,8 @@ import {
   sortTokenEndpointAuthMethods,
   TokenEndpointAuthMethod,
 } from "../client_auth_methods/mod.ts";
-import { JwtAuthority } from "../utils/jwt_authority.ts";
-import { OAuth2TokenResponseBody } from "../types.ts";
+//import { JwtAuthority } from "../utils/jwt_authority.ts";
+import { OAuth2Client, OAuth2TokenResponseBody } from "../types.ts";
 
 export type OAuth2AuthFlowTokenResponse =
   | { success: true; tokenResponse: OAuth2TokenResponseBody }
@@ -27,6 +27,18 @@ export interface OAuth2AuthFlowOptions {
     */
   securitySchemeName?: string;
   accessTokenLifetime?: number;
+  tokenUrl?: string;
+}
+
+export interface OAuth2GrantModel<TTokenRequest, TGrantContext> {
+  /**
+   * Retrieve a client by its id (and optionally verify its secret).
+   */
+  getClient(tokenRequest: TTokenRequest): Promise<OAuth2Client | undefined>;
+  /**
+   * Generate an access token for the grant type.
+   */
+  generateAccessToken(context: TGrantContext): Promise<string | undefined>;
 }
 
 export abstract class OAuth2AuthFlow {
@@ -71,16 +83,20 @@ export abstract class OAuth2AuthFlow {
   }
 
   //
-  protected securitySchemeName: string;
+  protected securitySchemeName: string = "oauth2-auth-flow";
+  /** Default lifetime (in seconds) for access tokens. @default {3600} */
+  protected accessTokenLifetime: number = 3600;
+  protected tokenUrl: string = "/token";
   protected description?: string;
   protected scopes?: Record<string, string>;
 
-  /** Default lifetime (in seconds) for access tokens. @default {3600} */
-  protected accessTokenLifetime: number = 3600;
 
+  /*
   protected jwksPublicKeyTtl?: number;
   protected jwksRotationIntervalMs?: number;
   protected jwtAuthority?: JwtAuthority;
+  */
+
   /*
     protected options: OAuth2AuthOptions;
 
@@ -97,11 +113,15 @@ export abstract class OAuth2AuthFlow {
 
   constructor(options?: OAuth2AuthFlowOptions) {
     this._tokenType = new BearerTokenType();
-    this.securitySchemeName = options?.securitySchemeName || "oauth2-auth-flow";
+    if (options?.securitySchemeName) {
+      this.securitySchemeName = options?.securitySchemeName;
+    }
+    if (options?.tokenUrl) {
+      this.tokenUrl = options?.tokenUrl;
+    }
     this.accessTokenLifetime = options?.accessTokenLifetime || 3600;
     //this.options = options?.options ? { ...options.options } : {};
-
-    //
+    
     //this.jwksRoute = options?.jwksRoute;
     //this.jwksKeyStore = options?.jwksOptions?.keyStore;
 
@@ -300,6 +320,17 @@ export abstract class OAuth2AuthFlow {
     return this;
   }
 
+  setTokenUrl(tokenUrl: string): this {
+    // This method is a no-op since the token URL is determined by the route where the token method is called.
+    // It's included here for better discoverability and to allow setting the token URL in a fluent style when configuring the grant flow.
+    this.tokenUrl = tokenUrl;
+    return this;
+  }
+
+  getTokenUrl(): string {
+    return this.tokenUrl;
+  }
+
   getScopes(): Record<string, string> | undefined {
     return this.scopes;
   }
@@ -410,9 +441,5 @@ export abstract class OAuth2AuthFlow {
    * Convert the grant flow to an OpenAPI security scheme object.
    * @param options Options for generating the OpenAPI security scheme.
    */
-  abstract toOpenAPISecurityScheme(options?: {
-    authorizationUrl?: string;
-    tokenUrl?: string;
-    refreshUrl?: string;
-  }): Record<string, unknown>;
+  abstract toOpenAPISecurityScheme(): Record<string, unknown>;
 }

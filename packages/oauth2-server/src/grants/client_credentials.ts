@@ -6,8 +6,9 @@ import {
   UnsupportedGrantTypeError,
 } from "../errors.ts";
 import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
+import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client } from "../types.ts";
-import { OAuth2AuthFlow, OAuth2AuthFlowOptions, OAuth2AuthFlowTokenResponse } from "./auth_flow.ts";
+import { OAuth2AuthFlow, OAuth2AuthFlowOptions, OAuth2AuthFlowTokenResponse, OAuth2GrantModel } from "./auth_flow.ts";
 
 /**
  * Handles the Client Credentials grant type.
@@ -38,7 +39,7 @@ export interface ClientCredentialsGrantContext {
 export interface ClientCredentialsTokenRequest {
   clientId: string;
   clientSecret: string;
-  grantType?: string;
+  grantType: string;
   scopes?: string[];
 }
 
@@ -46,16 +47,8 @@ export interface ClientCredentialsTokenRequest {
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the client credentials grant.
  */
-export interface ClientCredentialsModel {
-  /**
-   * Retrieve a client by its id (and optionally verify its secret).
-   */
-  getClient(tokenRequest: ClientCredentialsTokenRequest): Promise<OAuth2Client | undefined>;
-  /**
-   * Generate an access token for the client credentials grant.
-   */
-  generateAccessToken(context: ClientCredentialsGrantContext): Promise<string | undefined>;
-}
+export interface ClientCredentialsModel 
+  extends OAuth2GrantModel<ClientCredentialsTokenRequest, ClientCredentialsGrantContext> {}
 
 /**
  * Options for configuring the client credentials grant flow.
@@ -131,6 +124,14 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
       // If clientId or clientSecret is missing, return 401 error
       if (!clientId || !clientSecret) {
         return { success: false, error: new InvalidClientError("Invalid client credentials") };
+      }
+
+      // e.g. for DPoP token type, we need to validate the token request before validating client credentials
+      const tokenTypeValidationResponse: TokenTypeValidationResponse = this._tokenType.isValidTokenRequest
+        ? await this._tokenType.isValidTokenRequest(request)
+        : { isValid: true };
+      if (!tokenTypeValidationResponse.isValid) {
+        return { success: false, error: new InvalidClientError(tokenTypeValidationResponse.message || "Invalid token request") };
       }
 
       const tokenRequest: ClientCredentialsTokenRequest = {
@@ -216,15 +217,15 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
     });
   }
 
-  toOpenAPISecurityScheme({ tokenUrl }: { tokenUrl: string }) {
+  toOpenAPISecurityScheme() {
     return {
       [this.getSecuritySchemeName()]: {
         type: "oauth2" as const,
         description: this.getDescription(),
         flows: {
           clientCredentials: {
-            scopes: this.getScopes() || {},
-            tokenUrl,
+            scopes: { ...(this.getScopes() || {}) },
+            tokenUrl: this.getTokenUrl(),
           },
         },
       },
