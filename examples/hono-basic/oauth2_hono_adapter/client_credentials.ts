@@ -23,7 +23,7 @@ export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
 export class HonoClientCredentialsGrantFlow<
   E extends Env = Env,
 > extends ClientCredentialsGrantFlow {
-  readonly #authorizeHandler: (
+  readonly #verifyTokenHandler: (
     context: Context<E & OAuth2ServerEnv>,
   ) => Promise<StrategyResult>;
   readonly #authorizeMiddleware: MiddlewareHandler<E & OAuth2ServerEnv>;
@@ -44,7 +44,7 @@ export class HonoClientCredentialsGrantFlow<
       });
     });
 
-    this.#authorizeHandler = async (context: Context<E & OAuth2ServerEnv>) => {
+    this.#verifyTokenHandler = async (context: Context<E & OAuth2ServerEnv>) => {
       const honoVerifyToken = strategyOptions.verifyToken;
       const verifyToken: StrategyVerifyTokenFunction | undefined = honoVerifyToken
         ? async (_, params) => {
@@ -87,7 +87,7 @@ export class HonoClientCredentialsGrantFlow<
   async verifyTokenFromHono(
     context: Context<E & OAuth2ServerEnv>,
   ): Promise<StrategyResult> {
-    return await this.#authorizeHandler(context);
+    return await this.#verifyTokenHandler(context);
   }
 
   async tokenFromHono(context: Context): Promise<OAuth2AuthFlowTokenResponse> {

@@ -64,6 +64,11 @@ export interface AuthorizationCodeEndpointContext {
   scope: string[];
   state?: string;
   codeChallenge?: string;
+  /**
+   * for OpenID Connect, the nonce parameter is required in the authorization request and should be included in the context for generating the authorization code, so that it can be associated with the authorization code and later included in the ID token when exchanging the authorization code for tokens at the token endpoint.
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
+   */
   nonce?: string;
 }
 
@@ -77,6 +82,11 @@ export interface AuthorizationCodeEndpointRequest {
   scope?: string[];
   state?: string;
   codeChallenge?: string;
+  /**
+   * for OpenID Connect, the nonce parameter is required in the authorization request and should be included in the context for generating the authorization code, so that it can be associated with the authorization code and later included in the ID token when exchanging the authorization code for tokens at the token endpoint.
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
+   */
   nonce?: string;
 }
 
@@ -86,6 +96,12 @@ export interface AuthorizationCodeEndpointResponseParams {
   scope: string[];
   code: string;
   state?: string;
+  /**
+   * for OpenID Connect, the nonce parameter is required in the authorization request and should be included in the context for generating the authorization code, so that it can be associated with the authorization code and later included in the ID token when exchanging the authorization code for tokens at the token endpoint.
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
+   */
+  nonce?: string;
   error?: never;
   [key: string]: unknown;
 }
@@ -228,6 +244,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
           scope: validatedScopes,
           code,
           state,
+          nonce,
         },
       };
     }

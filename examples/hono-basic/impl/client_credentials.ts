@@ -4,6 +4,7 @@ import {
 
 import { BearerTokenType, HonoClientCredentialsGrantFlow } from "../oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";
+import { verifyTokenFunction } from "./common.ts";
 
 export const clientCredentialsFlow = new HonoClientCredentialsGrantFlow({
   model: {
@@ -54,23 +55,7 @@ export const clientCredentialsFlow = new HonoClientCredentialsGrantFlow({
         message,
       });
     },
-    verifyToken: (_context, { token }) => {
-      console.log("verifyToken called with token:", token);
-      if (token.startsWith("admin")) {
-        return {
-          isValid: true,
-          credentials: {
-            user: {
-              username: "admin",
-              level: 50,
-            },
-            scope: token.substring(6).split(","),
-          },
-        };
-      }
-
-      return { isValid: false };
-    },
+    verifyToken: verifyTokenFunction,
   },
   accessTokenLifetime: 3600,
   securitySchemeName: "honoClientCredentials",

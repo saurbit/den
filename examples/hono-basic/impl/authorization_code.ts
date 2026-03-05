@@ -4,6 +4,7 @@ import {
 
 import { BearerTokenType, HonoAuthorizationCodeGrantFlow } from "../oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";
+import { verifyTokenFunction } from "./common.ts";
 
 export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
   model: {
@@ -89,23 +90,7 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
         message,
       });
     },
-    verifyToken: (_context, { token }) => {
-      console.log("verifyToken called with token:", token);
-      if (token.startsWith("admin")) {
-        return {
-          isValid: true,
-          credentials: {
-            user: {
-              username: "admin",
-              level: 50,
-            },
-            scope: token.substring(6).split(","),
-          },
-        };
-      }
-
-      return { isValid: false };
-    },
+    verifyToken: verifyTokenFunction,
   },
   accessTokenLifetime: 3600,
   securitySchemeName: "honoClientCredentials",
@@ -131,4 +116,5 @@ authorizationCodeFlow
     "content:write": "Write content",
     "admin": "Admin access",
   })
-  .setTokenUrl("/token"); // Set the token URL for the OpenAPI documentation
+  .setTokenUrl("/token") // Set the token URL for the OpenAPI documentation
+  .setAuthorizationUrl("/authorize"); // Set the authorization URL for the OpenAPI documentation
