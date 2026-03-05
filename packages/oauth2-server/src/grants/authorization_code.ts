@@ -1,6 +1,7 @@
 import {
   InvalidClientError,
   InvalidRequestError,
+  OAuth2Error,
   ServerError,
   UnauthorizedClientError,
   UnsupportedGrantTypeError,
@@ -55,11 +56,60 @@ export interface AuthorizationCodeTokenRequest {
 }
 
 /**
+ * Validation context for authorization code authentication (authorization endpoint request),
+ * which can be used by the model's generateAuthorizationCode() method
+ * to generate an authorization code with appropriate scopes, etc.
+ */
+export interface AuthorizationCodeEndpointContext {
+  client: OAuth2Client;
+  responseType: "code"; // should be "code" for authorization code grant
+  redirectUri: string;
+  scopes?: string[];
+  state?: string;
+  codeChallenge?: string;
+  nonce?: string;
+}
+
+/**
+ * Raw authentication request parameters for authorization code grant.
+ */
+export interface AuthorizationCodeEndpointRequest {
+  clientId: string;
+  responseType: "code"; // should be "code" for authorization code grant
+  redirectUri: string;
+  scopes?: string[];
+  state?: string;
+  codeChallenge?: string;
+  nonce?: string;
+}
+
+export interface AuthorizationCodeEndpointResponseParams {
+  client: OAuth2Client;
+  redirectUri: string;
+  scopes: string[];
+  code: string;
+  state?: string;
+  error?: never;
+  [key: string]: unknown;
+}
+
+export type AuthorizationCodeEndpointResponse =
+  | { success: true }
+  | { success: true; codeResponse: AuthorizationCodeEndpointResponseParams }
+  | { success: false; error: OAuth2Error; state?: string };
+
+/**
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the authorization code grant.
  */
 export interface AuthorizationCodeModel
-  extends OAuth2GrantModel<AuthorizationCodeTokenRequest, AuthorizationCodeGrantContext> {}
+  extends OAuth2GrantModel<AuthorizationCodeTokenRequest, AuthorizationCodeGrantContext> {
+  getClientForAuthentication(
+    authRequest: AuthorizationCodeEndpointRequest,
+  ): Promise<OAuth2Client | undefined>;
+
+  generateAuthorizationCode(context: AuthorizationCodeEndpointContext): Promise<string | undefined>;
+}
 
 /**
  * Options for configuring the authorization code grant flow.
@@ -94,6 +144,91 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
 
   getAuthorizationUrl(): string {
     return this.authorizationUrl;
+  }
+
+  async handleAuthorizationEndpoint(request: Request): Promise<AuthorizationCodeEndpointResponse> {
+    const query = new URL(request.url).searchParams;
+    const clientId = query.get("client_id") || undefined;
+    const responseType = query.get("response_type") || undefined;
+    const redirectUri = query.get("redirect_uri") || undefined;
+    const scope = query.get("scope") || undefined;
+    const state = query.get("state") || undefined;
+    const codeChallenge = query.get("code_challenge") || undefined;
+    const nonce = query.get("nonce") || undefined;
+
+    if (!clientId) {
+      return { success: false, error: new InvalidRequestError("Missing client_id parameter") };
+    }
+
+    if (responseType !== "code") {
+      return { success: false, error: new UnsupportedGrantTypeError("Unsupported response type") };
+    }
+
+    if (!redirectUri) {
+      return { success: false, error: new InvalidRequestError("Missing redirect_uri parameter") };
+    }
+
+    // In a real implementation, you would validate the client_id and redirect_uri here,
+    // and then generate an authorization code and redirect the user to the redirect_uri with the code and state as query parameters.
+
+    const client = await this.#model.getClientForAuthentication({
+      clientId,
+      responseType,
+      redirectUri,
+      scopes: scope ? scope.split(" ") : undefined,
+      state,
+      codeChallenge,
+      nonce,
+    });
+
+    if (!client) {
+      return {
+        success: false,
+        error: new InvalidClientError("Invalid client_id or redirect_uri or scope"),
+      };
+    }
+
+    if (request.method === "GET") {
+      // In a real implementation, you would render a login page
+      // or consent page here for the user
+      // to authenticate and authorize the client.
+      return {
+        success: true,
+      };
+    }
+
+    if (request.method === "POST") {
+      // In a real implementation, you would authenticate the user here,
+      // and if authentication is successful, generate an authorization code,
+      // and redirect the user to the redirect_uri with the code and state as query parameters.
+
+      const code = await this.#model.generateAuthorizationCode({
+        client,
+        responseType,
+        redirectUri,
+        scopes: scope ? scope.split(" ") : [],
+        state,
+        codeChallenge,
+        nonce,
+      });
+
+      if (!code) {
+        return { success: false, error: new ServerError("Failed to generate authorization code") };
+      }
+
+      return {
+        success: true,
+        codeResponse: {
+          client,
+          redirectUri,
+          scopes: scope ? scope.split(" ") : [],
+          code,
+          state,
+        },
+      };
+    }
+
+    return { success: false, error: new InvalidRequestError("Unsupported HTTP method") };
   }
 
   /**
@@ -269,7 +404,7 @@ export class AuthorizationCodeGrantFlow extends OAuth2AuthFlow implements Author
    * Verifies the token grants access
    * @param request
    */
-  async authorize(request: Request): Promise<StrategyResult> {
+  async verifyToken(request: Request): Promise<StrategyResult> {
     return await evaluateStrategy(request, {
       ...this.#strategyOptions,
       tokenType: this._tokenType,

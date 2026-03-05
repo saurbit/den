@@ -221,7 +221,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
    * Verifies the token grants access
    * @param request
    */
-  async authorize(request: Request): Promise<StrategyResult> {
+  async verifyToken(request: Request): Promise<StrategyResult> {
     return await evaluateStrategy(request, {
       ...this.#strategyOptions,
       tokenType: this._tokenType,

@@ -32,6 +32,9 @@ export interface OAuth2Client {
 
   /** Scopes the client is allowed to request. */
   scopes?: string[];
+
+  /** Additional client metadata. */
+  metadata?: Record<string, unknown>;
 }
 
 /**

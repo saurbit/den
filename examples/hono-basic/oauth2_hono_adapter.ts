@@ -133,7 +133,7 @@ export class HonoClientCredentialsGrantFlow<
 
   #createAuthorizeMiddleware(scopes: string[]): MiddlewareHandler<E & OAuth2ServerEnv> {
     return async (c, next) => {
-      const result = await this.authorizeFromHono(c);
+      const result = await this.verifyTokenFromHono(c);
 
       if (result.success) {
         if (
@@ -153,7 +153,7 @@ export class HonoClientCredentialsGrantFlow<
     };
   }
 
-  async authorizeFromHono(
+  async verifyTokenFromHono(
     context: Context<E & OAuth2ServerEnv>,
   ): Promise<StrategyResult> {
     return await this.#authorizeHandler(context);
