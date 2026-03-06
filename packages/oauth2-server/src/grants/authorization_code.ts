@@ -119,7 +119,7 @@ export interface AuthorizationCodeEndpointContinueResponse {
   [key: string]: unknown;
 }
 
-export interface AuthorizationCodeEndpointResponseParams {
+export interface AuthorizationCodeEndpointCodeResponse {
   user: AuthorizationCodeUser;
   client: OAuth2Client;
   redirectUri: string;
@@ -137,37 +137,58 @@ export interface AuthorizationCodeEndpointResponseParams {
 }
 
 export type AuthorizationCodeEndpointResponse =
-  | { success: true; method: "GET"; context: AuthorizationCodeEndpointContext }
+  | { method: "GET"; type: "initiated"; context: AuthorizationCodeEndpointContext }
   | {
-    success: true;
     method: "POST";
     type: "code";
-    authorizationCodeResponse: AuthorizationCodeEndpointResponseParams;
+    authorizationCodeResponse: AuthorizationCodeEndpointCodeResponse;
   }
   | {
-    success: true;
     method: "POST";
     type: "continue";
     continueResponse: AuthorizationCodeEndpointContinueResponse;
   }
-  | { success: false; error: OAuth2Error };
+  | {
+    method: "POST";
+    type: "unauthenticated";
+    context: AuthorizationCodeEndpointContext;
+    message?: string;
+  }
+  | {
+    type: "error";
+    error: OAuth2Error;
+    redirectable: boolean;
+    client?: OAuth2Client;
+    redirectUri?: string;
+    state?: string;
+  };
 
 export type AuthorizationCodeInitiationResponse =
   | { success: true; context: AuthorizationCodeEndpointContext }
-  | { success: false; error: OAuth2Error };
+  | { success: false; error: OAuth2Error; redirectable: false };
 
 export type AuthorizationCodeProcessResponse =
   | {
-    success: true;
     type: "continue";
     continueResponse: AuthorizationCodeEndpointContinueResponse;
   }
   | {
-    success: true;
     type: "code";
-    authorizationCodeResponse: AuthorizationCodeEndpointResponseParams;
+    authorizationCodeResponse: AuthorizationCodeEndpointCodeResponse;
   }
-  | { success: false; error: OAuth2Error };
+  | {
+    type: "unauthenticated";
+    context: AuthorizationCodeEndpointContext;
+    message?: string;
+  }
+  | {
+    type: "error";
+    error: OAuth2Error;
+    redirectable: boolean;
+    client?: OAuth2Client;
+    redirectUri?: string;
+    state?: string;
+  };
 
 export interface AuthorizationCodeAccessTokenResult extends OAuth2AccessTokenResult {
   /**
@@ -203,7 +224,11 @@ export interface AuthorizationCodeModel<
     context: AuthorizationCodeEndpointContext,
     reqBody: AuthReqBody,
     request: Request,
-  ): Promise<AuthorizationCodeUser | undefined>;
+  ): Promise<
+    | { type: "authenticated"; user: AuthorizationCodeUser }
+    | { type: "unauthenticated"; message?: string }
+    | undefined
+  >;
 
   generateAuthorizationCode(
     context: AuthorizationCodeEndpointContext,
@@ -249,10 +274,7 @@ export class AuthorizationCodeGrantFlow<
 
   async getAuthorizationCodeEndpointContext(
     request: Request,
-  ): Promise<
-    | { success: true; context: AuthorizationCodeEndpointContext }
-    | { success: false; error: OAuth2Error }
-  > {
+  ): Promise<AuthorizationCodeInitiationResponse> {
     const query = new URL(request.url).searchParams;
     const clientId = query.get("client_id") || undefined;
     const responseType = query.get("response_type") || undefined;
@@ -266,6 +288,7 @@ export class AuthorizationCodeGrantFlow<
       return {
         success: false,
         error: new InvalidRequestError("Missing client_id parameter"),
+        redirectable: false,
       };
     }
 
@@ -273,6 +296,7 @@ export class AuthorizationCodeGrantFlow<
       return {
         success: false,
         error: new UnsupportedGrantTypeError("Unsupported response type"),
+        redirectable: false,
       };
     }
 
@@ -280,6 +304,7 @@ export class AuthorizationCodeGrantFlow<
       return {
         success: false,
         error: new InvalidRequestError("Missing redirect_uri parameter"),
+        redirectable: false,
       };
     }
 
@@ -302,6 +327,7 @@ export class AuthorizationCodeGrantFlow<
         error: new InvalidClientError(
           "Invalid client_id or redirect_uri or scope",
         ),
+        redirectable: false,
       };
     }
 
@@ -336,6 +362,7 @@ export class AuthorizationCodeGrantFlow<
       return {
         success: false,
         error: new InvalidRequestError("Method Not Allowed"),
+        redirectable: false,
       };
     }
 
@@ -348,15 +375,20 @@ export class AuthorizationCodeGrantFlow<
   ): Promise<AuthorizationCodeProcessResponse> {
     if (request.method !== "POST") {
       return {
-        success: false,
+        type: "error",
         error: new InvalidRequestError("Method Not Allowed"),
+        redirectable: false,
       };
     }
 
     const context = await this.getAuthorizationCodeEndpointContext(request);
 
     if (!context.success) {
-      return context;
+      return {
+        type: "error",
+        redirectable: context.redirectable,
+        error: context.error,
+      };
     }
 
     const {
@@ -369,7 +401,7 @@ export class AuthorizationCodeGrantFlow<
       nonce,
     } = context.context;
 
-    const user = await this.#model.getUserForAuthentication(
+    const userResult = await this.#model.getUserForAuthentication(
       {
         client,
         responseType,
@@ -383,10 +415,20 @@ export class AuthorizationCodeGrantFlow<
       request.clone(),
     );
 
-    if (!user) {
+    if (!userResult || userResult.type === "unauthenticated") {
       return {
-        success: false,
-        error: new InvalidClientError("Invalid user credentials"),
+        type: "unauthenticated",
+        //error: new InvalidClientError(userResult.message || "Invalid user credentials"),
+        context: {
+          client,
+          responseType,
+          redirectUri,
+          scope: [...scope],
+          state,
+          codeChallenge,
+          nonce,
+        },
+        message: userResult?.message,
       };
     }
 
@@ -400,31 +442,38 @@ export class AuthorizationCodeGrantFlow<
         codeChallenge,
         nonce,
       },
-      user,
+      userResult.user,
     );
 
     if (!codeResult) {
       return {
-        success: false,
+        type: "error",
         error: new ServerError("Failed to generate authorization code"),
+        redirectable: true,
+        client,
+        redirectUri,
+        state,
       };
     }
 
     if (codeResult.type === "deny") {
       return {
-        success: false,
+        type: "error",
         error: new AccessDeniedError(codeResult.message),
+        redirectable: true,
+        client,
+        state,
+        redirectUri,
       };
     }
 
     if (codeResult.type === "continue") {
       return {
-        success: true,
         type: codeResult.type,
         continueResponse: {
           message: codeResult.message,
           client,
-          user,
+          user: userResult.user,
           redirectUri,
           scope: [...scope],
           state,
@@ -434,11 +483,10 @@ export class AuthorizationCodeGrantFlow<
     }
 
     return {
-      success: true,
       type: codeResult.type,
       authorizationCodeResponse: {
         client,
-        user,
+        user: userResult.user,
         redirectUri,
         scope: [...scope],
         code: codeResult.code,
@@ -459,11 +507,15 @@ export class AuthorizationCodeGrantFlow<
       const result = await this.initiateAuthorization(request);
 
       if (!result.success) {
-        return result;
+        return {
+          ...result,
+          type: "error",
+        };
       }
 
       return {
         ...result,
+        type: "initiated",
         method: "GET",
       };
     }
@@ -475,7 +527,7 @@ export class AuthorizationCodeGrantFlow<
 
       const result = await this.processAuthorization(request, reqBody);
 
-      if (!result.success) {
+      if (result.type === "error") {
         return result;
       }
 
@@ -486,8 +538,9 @@ export class AuthorizationCodeGrantFlow<
     }
 
     return {
-      success: false,
+      type: "error",
       error: new InvalidRequestError("Unsupported HTTP method"),
+      redirectable: false,
     };
   }
 

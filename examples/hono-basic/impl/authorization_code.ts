@@ -85,8 +85,21 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
       // For this example, we'll just return a dummy user object
       if (username === "user" && password === "crossterm") {
         return await Promise.resolve({
-          username: "user",
-          level: 1,
+          type: "authenticated",
+          user: {
+            username: "user",
+            level: 1,
+          },
+        });
+      }
+
+      if (username === "admin" && password === "crossterm") {
+        return await Promise.resolve({
+          type: "authenticated",
+          user: {
+            username: "admin",
+            level: 2,
+          },
         });
       }
     },
@@ -99,12 +112,21 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
       nonce: _n,
       scope,
       state: _s,
-    }) => {
+    }, user) => {
       console.log("generateAuthorizationCode called with:", {
         client: _c,
         redirectUri: _r,
         scope,
+        user,
       });
+
+      if (user?.username === "admin") {
+        return {
+          type: 'deny',
+          message: "Admins are not allowed to use the authorization code flow",
+        }
+      }
+
       // In a real implementation, you would generate a secure code here and associate it with the client, redirect URI, scope, and user
       return await Promise.resolve({
         type: "code",

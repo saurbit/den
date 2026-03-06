@@ -156,11 +156,15 @@ export class HonoAuthorizationCodeGrantFlow<
       const result = await this.initiateAuthorizationFromHono(context);
 
       if (!result.success) {
-        return result;
+        return {
+          type: "error",
+          ...result,
+        };
       }
 
       return {
         ...result,
+        type: "initiated",
         method: "GET",
       };
     }
@@ -172,7 +176,7 @@ export class HonoAuthorizationCodeGrantFlow<
 
       const result = await this.processAuthorizationFromHono(context);
 
-      if (!result.success) {
+      if (result.type === "error") {
         return result;
       }
 
@@ -182,6 +186,10 @@ export class HonoAuthorizationCodeGrantFlow<
       };
     }
 
-    return { success: false, error: new InvalidRequestError("Unsupported HTTP method") };
+    return {
+      type: "error",
+      error: new InvalidRequestError("Unsupported HTTP method"),
+      redirectable: false,
+    };
   }
 }

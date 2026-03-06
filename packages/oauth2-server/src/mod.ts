@@ -60,11 +60,11 @@ export type {
 export { OAuth2AuthFlow } from "./grants/auth_flow.ts";
 export type {
   AuthorizationCodeAccessTokenResult,
+  AuthorizationCodeEndpointCodeResponse,
   AuthorizationCodeEndpointContext,
   AuthorizationCodeEndpointContinueResponse,
   AuthorizationCodeEndpointRequest,
   AuthorizationCodeEndpointResponse,
-  AuthorizationCodeEndpointResponseParams,
   AuthorizationCodeGeneratorResult,
   AuthorizationCodeGrant,
   AuthorizationCodeGrantContext,

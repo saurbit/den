@@ -18,6 +18,7 @@ import {
   HTTPRateLimitException,
 } from "./impl/authorization_code.ts";
 import { oauth2Redirect } from "./swagger_ui/oauth2_redirect.ts";
+import { AccessDeniedError } from "@saurbit/oauth2-server";
 
 const app = new Hono();
 
@@ -47,9 +48,9 @@ app.get(
 
 app.get("/authorize", async (c) => {
   const result = await authorizationCodeFlow.handleAuthorizationEndpointFromHono(c);
-  if (result.success) {
+  if (result.type === "initiated") {
     return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password" }));
-  } else {
+  } else if (result.type === "error") {
     const error = result.error;
     console.log("Authorization endpoint error:", { error: error.name, message: error.message });
     return c.json({ error: "invalid_request" }, 400);
@@ -60,36 +61,64 @@ app.post("/authorize", async (c) => {
   try {
     // Here you would typically validate the user's credentials and then proceed with the authorization process
     const result = await authorizationCodeFlow.processAuthorizationFromHono(c);
-    if (result.success) {
-      if (result.type === "code") {
-        const { user, code, redirectUri, state } = result.authorizationCodeResponse;
-        console.log("Authorization successful:", {
-          user: user?.username,
-          code,
-          state,
-        });
 
-        // In a real implementation, you would redirect the user to the client's redirect_uri with the authorization code and state as query parameters.
-        // Or you might render a consent page here for the user to authorize the client to access their resources.
-
-        const searchParams = new URLSearchParams();
-        searchParams.set("code", code);
-        if (state) {
-          searchParams.set("state", state);
-        }
-
-        return c.redirect(`${redirectUri}?${searchParams.toString()}`);
-      } else {
-        return c.json({ message: "Consent page was not implemented" }, 500);
-      }
-    } else {
+    if (result.type === "error") {
       const error = result.error;
       console.log("Authorization endpoint error:", { error: error.name, message: error.message });
+
+      if (result.redirectable) {
+        const searchParams = new URLSearchParams();
+        // for security reasons, it is recommended to return a generic error message in production instead of the specific error message
+        searchParams.set(
+          "error",
+          error instanceof AccessDeniedError ? error.errorCode : "invalid_request",
+        );
+        searchParams.set(
+          "error_description",
+          error instanceof AccessDeniedError ? error.message : "Invalid request",
+        );
+        if (result.state) {
+          searchParams.set("state", result.state);
+        }
+        return c.redirect(`${result.redirectUri}?${searchParams.toString()}`);
+      }
+
       return c.html(
         HtmlFormContent({
           usernameField: "username",
           passwordField: "password",
           errorMessage: error.message,
+        }),
+        400,
+      );
+    }
+
+    if (result.type === "code") {
+      const { user, code, redirectUri, state } = result.authorizationCodeResponse;
+      console.log("Authorization successful:", {
+        user: user?.username,
+        code,
+        state,
+      });
+
+      // In a real implementation, you would redirect the user to the client's redirect_uri with the authorization code and state as query parameters.
+      // Or you might render a consent page here for the user to authorize the client to access their resources.
+
+      const searchParams = new URLSearchParams();
+      searchParams.set("code", code);
+      if (state) {
+        searchParams.set("state", state);
+      }
+
+      return c.redirect(`${redirectUri}?${searchParams.toString()}`);
+    } else if (result.type === "continue") {
+      return c.json({ message: "Consent page was not implemented" }, 500);
+    } else if (result.type === "unauthenticated") {
+      return c.html(
+        HtmlFormContent({
+          usernameField: "username",
+          passwordField: "password",
+          errorMessage: result.message || "Authentication failed. Please try again.",
         }),
         400,
       );
