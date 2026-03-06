@@ -520,6 +520,8 @@ export class AuthorizationCodeGrantFlow<
           access_token: accessToken,
           token_type: this.tokenType,
           expires_in: grantContext.accessTokenLifetime,
+          // TODO: include refresh token if applicable
+          // TODO: include scope (might be retrieved from generateAccessToken?)
           scope: "",
         },
       };
