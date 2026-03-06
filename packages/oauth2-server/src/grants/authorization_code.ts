@@ -296,7 +296,7 @@ export class AuthorizationCodeGrantFlow<
         nonce,
       },
       reqBody,
-      request,
+      request.clone(),
     );
 
     if (!user) {
@@ -338,12 +338,11 @@ export class AuthorizationCodeGrantFlow<
     request: Request,
     reqBody: AuthReqBody,
   ): Promise<AuthorizationCodeEndpointResponse> {
-    const req = request.clone();
-    if (req.method === "GET") {
+    if (request.method === "GET") {
       // In a real implementation, you would render a login page
       // or consent page here for the user
       // to authenticate and authorize the client.
-      const result = await this.initiateAuthorization(req);
+      const result = await this.initiateAuthorization(request);
 
       if (!result.success) {
         return result;
@@ -355,12 +354,12 @@ export class AuthorizationCodeGrantFlow<
       };
     }
 
-    if (req.method === "POST") {
+    if (request.method === "POST") {
       // In a real implementation, you would authenticate the user here,
       // and if authentication is successful, generate an authorization code,
       // and redirect the user to the redirect_uri with the code and state as query parameters.
 
-      const result = await this.processAuthorization(req, reqBody);
+      const result = await this.processAuthorization(request, reqBody);
 
       if (!result.success) {
         return result;
