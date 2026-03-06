@@ -61,12 +61,12 @@ export type {
   AuthorizationCodeGrant,
   AuthorizationCodeGrantContext,
   AuthorizationCodeGrantFlowOptions,
+  AuthorizationCodeInitiationResponse,
   AuthorizationCodeModel,
+  AuthorizationCodeProcessResponse,
+  AuthorizationCodeReqBody,
   AuthorizationCodeTokenRequest,
   AuthorizationCodeUser,
-  AuthorizationCodeReqBody,
-  AuthorizationCodeInitiationResponse,
-  AuthorizationCodeProcessResponse
 } from "./grants/authorization_code.ts";
 export { AuthorizationCodeGrantFlow } from "./grants/authorization_code.ts";
 export type {

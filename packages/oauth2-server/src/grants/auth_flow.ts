@@ -122,7 +122,7 @@ export abstract class OAuth2AuthFlow {
     if (options?.tokenUrl) {
       this.tokenUrl = options?.tokenUrl;
     }
-    if (options?.strategyOptions) { 
+    if (options?.strategyOptions) {
       this.strategyOptions = options.strategyOptions;
     } else {
       this.strategyOptions = {};
@@ -155,7 +155,7 @@ export abstract class OAuth2AuthFlow {
     for (const am of supported) {
       const amInstance = authMethodsInstances[am];
       if (amInstance) {
-        const v = await amInstance.extractClientCredentials(req as unknown as Request);
+        const v = await amInstance.extractClientCredentials(req.clone());
         if (v.hasAuthMethod) {
           clientId = v.clientId;
           clientSecret = v.clientSecret;
@@ -442,7 +442,7 @@ export abstract class OAuth2AuthFlow {
       tokenType: this._tokenType,
     });
   }
-  
+
   toOpenAPIPathItem(scopes?: string[]) {
     return {
       [this.getSecuritySchemeName()]: scopes || [],

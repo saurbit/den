@@ -116,24 +116,29 @@ export interface AuthorizationCodeEndpointResponseParams {
 }
 
 export type AuthorizationCodeEndpointResponse =
-  | { success: true; method: "GET"; context: AuthorizationCodeEndpointContext; }
-  | { success: true; method: "POST"; authorizationCodeResponse: AuthorizationCodeEndpointResponseParams }
-  | { success: false; error: OAuth2Error; };
+  | { success: true; method: "GET"; context: AuthorizationCodeEndpointContext }
+  | {
+    success: true;
+    method: "POST";
+    authorizationCodeResponse: AuthorizationCodeEndpointResponseParams;
+  }
+  | { success: false; error: OAuth2Error };
 
 export type AuthorizationCodeInitiationResponse =
-  | { success: true; context: AuthorizationCodeEndpointContext; }
-  | { success: false; error: OAuth2Error; };
+  | { success: true; context: AuthorizationCodeEndpointContext }
+  | { success: false; error: OAuth2Error };
 
 export type AuthorizationCodeProcessResponse =
-  | { success: true; authorizationCodeResponse: AuthorizationCodeEndpointResponseParams; }
-  | { success: false; error: OAuth2Error; };
+  | { success: true; authorizationCodeResponse: AuthorizationCodeEndpointResponseParams }
+  | { success: false; error: OAuth2Error };
 
 /**
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the authorization code grant.
  */
-export interface AuthorizationCodeModel<AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody>
-  extends OAuth2GrantModel<AuthorizationCodeTokenRequest, AuthorizationCodeGrantContext> {
+export interface AuthorizationCodeModel<
+  AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
+> extends OAuth2GrantModel<AuthorizationCodeTokenRequest, AuthorizationCodeGrantContext> {
   getClientForAuthentication(
     authRequest: AuthorizationCodeEndpointRequest,
   ): Promise<OAuth2Client | undefined>;
@@ -141,21 +146,28 @@ export interface AuthorizationCodeModel<AuthReqBody extends AuthorizationCodeReq
   getUserForAuthentication(
     context: AuthorizationCodeEndpointContext,
     reqBody: AuthReqBody,
-    request: Request
+    request: Request,
   ): Promise<AuthorizationCodeUser | undefined>;
 
-  generateAuthorizationCode(context: AuthorizationCodeEndpointContext, user: AuthorizationCodeUser): Promise<string | undefined>;
+  generateAuthorizationCode(
+    context: AuthorizationCodeEndpointContext,
+    user: AuthorizationCodeUser,
+  ): Promise<string | undefined>;
 }
 
 /**
  * Options for configuring the authorization code grant flow.
  */
-export interface AuthorizationCodeGrantFlowOptions<AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody> extends OAuth2AuthFlowOptions {
+export interface AuthorizationCodeGrantFlowOptions<
+  AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
+> extends OAuth2AuthFlowOptions {
   model: AuthorizationCodeModel<AuthReqBody>;
   authorizationUrl?: string;
 }
 
-export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody> extends OAuth2AuthFlow implements AuthorizationCodeGrant {
+export class AuthorizationCodeGrantFlow<
+  AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
+> extends OAuth2AuthFlow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
   readonly #model: AuthorizationCodeModel;
 
@@ -181,7 +193,7 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
 
   async getAuthorizationCodeEndpointContext(request: Request): Promise<
     | { success: true; context: AuthorizationCodeEndpointContext }
-    | { success: false; error: OAuth2Error; }
+    | { success: false; error: OAuth2Error }
   > {
     const query = new URL(request.url).searchParams;
     const clientId = query.get("client_id") || undefined;
@@ -243,9 +255,9 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
         scope: validatedScopes,
         state,
         codeChallenge,
-        nonce
-      }
-    }
+        nonce,
+      },
+    };
   }
 
   async initiateAuthorization(request: Request): Promise<AuthorizationCodeInitiationResponse> {
@@ -253,39 +265,44 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
       return { success: false, error: new InvalidRequestError("Method Not Allowed") };
     }
 
-    return await this.getAuthorizationCodeEndpointContext(request)
+    return await this.getAuthorizationCodeEndpointContext(request);
   }
 
-  async processAuthorization(request: Request, reqBody: AuthReqBody): Promise<AuthorizationCodeProcessResponse> {
+  async processAuthorization(
+    request: Request,
+    reqBody: AuthReqBody,
+  ): Promise<AuthorizationCodeProcessResponse> {
     if (request.method !== "POST") {
       return { success: false, error: new InvalidRequestError("Method Not Allowed") };
     }
 
-    const context = await this.getAuthorizationCodeEndpointContext(request)
+    const context = await this.getAuthorizationCodeEndpointContext(request);
 
     if (!context.success) {
-      return context
+      return context;
     }
 
-    const { client, responseType, redirectUri, scope, state, codeChallenge, nonce } = context.context;
+    const { client, responseType, redirectUri, scope, state, codeChallenge, nonce } =
+      context.context;
 
-    const user = await this.#model.getUserForAuthentication({
-      client,
-      responseType,
-      redirectUri,
-      scope: [...scope],
-      state,
-      codeChallenge,
-      nonce,
-    },
+    const user = await this.#model.getUserForAuthentication(
+      {
+        client,
+        responseType,
+        redirectUri,
+        scope: [...scope],
+        state,
+        codeChallenge,
+        nonce,
+      },
       reqBody,
-      request
+      request,
     );
 
     if (!user) {
       return {
         success: false,
-        error: new InvalidClientError("Invalid user credentials")
+        error: new InvalidClientError("Invalid user credentials"),
       };
     }
 
@@ -317,38 +334,41 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
     };
   }
 
-  async handleAuthorizationEndpoint(request: Request, reqBody: AuthReqBody): Promise<AuthorizationCodeEndpointResponse> {
-
-    if (request.method === "GET") {
+  async handleAuthorizationEndpoint(
+    request: Request,
+    reqBody: AuthReqBody,
+  ): Promise<AuthorizationCodeEndpointResponse> {
+    const req = request.clone();
+    if (req.method === "GET") {
       // In a real implementation, you would render a login page
       // or consent page here for the user
       // to authenticate and authorize the client.
-      const result = await this.initiateAuthorization(request);
+      const result = await this.initiateAuthorization(req);
 
       if (!result.success) {
-        return result
+        return result;
       }
 
       return {
         ...result,
-        method: 'GET'
+        method: "GET",
       };
     }
 
-    if (request.method === "POST") {
+    if (req.method === "POST") {
       // In a real implementation, you would authenticate the user here,
       // and if authentication is successful, generate an authorization code,
       // and redirect the user to the redirect_uri with the code and state as query parameters.
 
-      const result = await this.processAuthorization(request, reqBody);
+      const result = await this.processAuthorization(req, reqBody);
 
       if (!result.success) {
-        return result
+        return result;
       }
 
       return {
         ...result,
-        method: 'POST'
+        method: "POST",
       };
     }
 
@@ -362,7 +382,8 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
    * @param request The incoming HTTP request.
    */
   async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
-    if (request.method !== "POST") {
+    const req = request.clone();
+    if (req.method !== "POST") {
       return { success: false, error: new InvalidRequestError("Method Not Allowed") };
     }
 
@@ -371,10 +392,10 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
     let codeInBody: string | undefined;
     let codeVerifierInBody: string | undefined;
     let redirectUriInBody: string | undefined;
-    const contentType = request.headers.get("content-type") || "";
+    const contentType = req.headers.get("content-type") || "";
 
     if (contentType.includes("application/x-www-form-urlencoded")) {
-      const form = await request.formData();
+      const form = await req.formData();
       body = {
         grant_type: form.get("grant_type"),
         scope: form.get("scope"),
@@ -383,7 +404,7 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
         redirect_uri: form.get("redirect_uri"),
       };
     } else if (contentType.includes("application/json")) {
-      body = request.json ? await request.json() : null;
+      body = req.json ? await req.json() : null;
     } else {
       return { success: false, error: new InvalidRequestError("Unsupported Media Type") };
     }
@@ -416,7 +437,7 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
 
     // Validate client authentication credentials using the registered client authentication methods
     const { clientId, clientSecret, error } = await this.extractClientCredentials(
-      request,
+      request.clone(),
       this.clientAuthMethods,
       this.getTokenEndpointAuthMethods(),
     );
@@ -431,7 +452,7 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
       // e.g. for DPoP token type, we need to validate the token request before validating client credentials
       const tokenTypeValidationResponse: TokenTypeValidationResponse =
         this._tokenType.isValidTokenRequest
-          ? await this._tokenType.isValidTokenRequest(request)
+          ? await this._tokenType.isValidTokenRequest(request.clone())
           : { isValid: true };
       if (!tokenTypeValidationResponse.isValid) {
         return {
@@ -500,7 +521,7 @@ export class AuthorizationCodeGrantFlow<AuthReqBody extends AuthorizationCodeReq
           access_token: accessToken,
           token_type: this.tokenType,
           expires_in: grantContext.accessTokenLifetime,
-          scope: '',
+          scope: "",
         },
       };
     }

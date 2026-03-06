@@ -78,23 +78,24 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
    * @param request The incoming HTTP request.
    */
   async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
-    if (request.method !== "POST") {
+    const req = request.clone();
+    if (req.method !== "POST") {
       return { success: false, error: new InvalidRequestError("Method Not Allowed") };
     }
 
     let body: unknown;
     let grantTypeInBody: string | undefined;
     let scopesInBody: string[] | undefined;
-    const contentType = request.headers.get("content-type") || "";
+    const contentType = req.headers.get("content-type") || "";
 
     if (contentType.includes("application/x-www-form-urlencoded")) {
-      const form = await request.formData();
+      const form = await req.formData();
       body = {
         grant_type: form.get("grant_type"),
         scope: form.get("scope"),
       };
     } else if (contentType.includes("application/json")) {
-      body = request.json ? await request.json() : null;
+      body = req.json ? await req.json() : null;
     } else {
       return { success: false, error: new InvalidRequestError("Unsupported Media Type") };
     }
@@ -115,7 +116,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
 
     // Validate client authentication credentials using the registered client authentication methods
     const { clientId, clientSecret, error } = await this.extractClientCredentials(
-      request,
+      request.clone(),
       this.clientAuthMethods,
       this.getTokenEndpointAuthMethods(),
     );
@@ -130,7 +131,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
       // e.g. for DPoP token type, we need to validate the token request before validating client credentials
       const tokenTypeValidationResponse: TokenTypeValidationResponse =
         this._tokenType.isValidTokenRequest
-          ? await this._tokenType.isValidTokenRequest(request)
+          ? await this._tokenType.isValidTokenRequest(request.clone())
           : { isValid: true };
       if (!tokenTypeValidationResponse.isValid) {
         return {

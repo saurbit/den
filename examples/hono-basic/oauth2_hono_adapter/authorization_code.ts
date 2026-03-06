@@ -21,10 +21,9 @@ import {
 import { AuthorizationCodeEndpointResponse } from "@saurbit/oauth2-server";
 
 export interface HonoAuthorizationCodeFlowOptions<
-AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-E extends Env = Env
->
-  extends Omit<AuthorizationCodeGrantFlowOptions<AuthReqBody>, "strategyOptions"> {
+  AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
+  E extends Env = Env,
+> extends Omit<AuthorizationCodeGrantFlowOptions<AuthReqBody>, "strategyOptions"> {
   strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
   parseAuthorizationEndpointBody: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqBody>;
 }
@@ -40,9 +39,11 @@ export class HonoAuthorizationCodeGrantFlow<
 
   readonly #failedAuthorizationAction: FailedAuthorizationAction<E>;
 
-  readonly #parseAuthorizationEndpointBody: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqBody>;
+  readonly #parseAuthorizationEndpointBody: (
+    context: Context<E & OAuth2ServerEnv>,
+  ) => Promise<AuthReqBody>;
 
-  constructor(options: HonoAuthorizationCodeFlowOptions<AuthReqBody,E>) {
+  constructor(options: HonoAuthorizationCodeFlowOptions<AuthReqBody, E>) {
     const { strategyOptions, ...flowOptions } = options;
 
     super({
@@ -115,33 +116,37 @@ export class HonoAuthorizationCodeGrantFlow<
   /**
    * This method is a convenience method that combines the logic of initiating (GET) the authorization code flow for Hono.
    * It checks the HTTP method of the request and calls the appropriate method to handle the authorization endpoint logic.
-   * @param context 
-   * @returns 
+   * @param context
+   * @returns
    */
-  async initiateAuthorizationFromHono(context: Context): Promise<AuthorizationCodeInitiationResponse> {
+  async initiateAuthorizationFromHono(
+    context: Context,
+  ): Promise<AuthorizationCodeInitiationResponse> {
     return await this.initiateAuthorization(context.req.raw);
   }
 
   /**
    * This method is a convenience method that combines the logic of processing (POST) the authorization code flow for Hono.
    * It checks the HTTP method of the request and calls the appropriate method to handle the authorization endpoint logic.
-   * @param context 
+   * @param context
    * @returns
    */
   async processAuthorizationFromHono(context: Context): Promise<AuthorizationCodeProcessResponse> {
     return await this.processAuthorization(
-      context.req.raw, 
-      await this.#parseAuthorizationEndpointBody(context)
+      context.req.raw,
+      await this.#parseAuthorizationEndpointBody(context),
     );
   }
 
   /**
    * This method is a convenience method that handles the authorization endpoint logic for Hono.
    * It checks the HTTP method of the request and calls the appropriate method to handle the authorization endpoint logic.
-   * @param context 
-   * @returns 
+   * @param context
+   * @returns
    */
-  async handleAuthorizationEndpointFromHono(context: Context): Promise<AuthorizationCodeEndpointResponse> {
+  async handleAuthorizationEndpointFromHono(
+    context: Context,
+  ): Promise<AuthorizationCodeEndpointResponse> {
     if (context.req.method === "GET") {
       // In a real implementation, you would render a login page
       // or consent page here for the user
@@ -149,12 +154,12 @@ export class HonoAuthorizationCodeGrantFlow<
       const result = await this.initiateAuthorizationFromHono(context);
 
       if (!result.success) {
-        return result
+        return result;
       }
 
       return {
         ...result,
-        method: 'GET'
+        method: "GET",
       };
     }
 
@@ -166,12 +171,12 @@ export class HonoAuthorizationCodeGrantFlow<
       const result = await this.processAuthorizationFromHono(context);
 
       if (!result.success) {
-        return result
+        return result;
       }
 
       return {
         ...result,
-        method: 'POST'
+        method: "POST",
       };
     }
 

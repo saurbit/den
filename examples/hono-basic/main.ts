@@ -9,13 +9,14 @@ import {
 } from "hono-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
 
-import {
-  UnauthorizedClientError,
-  UnsupportedGrantTypeError,
-} from "@saurbit/oauth2-server";
+import { UnauthorizedClientError, UnsupportedGrantTypeError } from "@saurbit/oauth2-server";
 
 import { clientCredentialsFlow } from "./impl/client_credentials.ts";
-import { authorizationCodeFlow, HtmlFormContent, HTTPRateLimitException } from "./impl/authorization_code.ts";
+import {
+  authorizationCodeFlow,
+  HtmlFormContent,
+  HTTPRateLimitException,
+} from "./impl/authorization_code.ts";
 
 const app = new Hono();
 
@@ -43,7 +44,7 @@ app.get(
   },
 );
 
-app.get('/authorize', async (c) => {
+app.get("/authorize", async (c) => {
   const result = await authorizationCodeFlow.handleAuthorizationEndpointFromHono(c);
   if (result.success) {
     return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password" }));
@@ -54,30 +55,60 @@ app.get('/authorize', async (c) => {
   }
 });
 
-app.post('/authorize',
-  async (c) => {
-    try {
-      const result = await authorizationCodeFlow.processAuthorizationFromHono(c);
-      if (result.success) {
-        const { user } = result.authorizationCodeResponse
-        // Here you would typically validate the user's credentials and then proceed with the authorization process
-        // For this example, we'll just log the form data and return a success message
-        return c.json({
-          message: `User ${user.username} authorized successfully!`,
-        });
-      } else {
-        const error = result.error;
-        console.log("Authorization endpoint error:", { error: error.name, message: error.message });
-        return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password", errorMessage: error.message }), 400);
+app.post("/authorize", async (c) => {
+  try {
+    // Here you would typically validate the user's credentials and then proceed with the authorization process
+    const result = await authorizationCodeFlow.processAuthorizationFromHono(c);
+    if (result.success) {
+      const { user, code, redirectUri, state } = result.authorizationCodeResponse;
+      console.log("Authorization successful:", { user: user?.username, code, state });
+
+      // In a real implementation, you would redirect the user to the client's redirect_uri with the authorization code and state as query parameters.
+      // Or you might render a consent page here for the user to authorize the client to access their resources.
+
+      const searchParams = new URLSearchParams();
+      searchParams.set("code", code);
+      if (state) {
+        searchParams.set("state", state);
       }
-    } catch(error) {
-      if (error instanceof HTTPRateLimitException) {
-        return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password", errorMessage: error.message }), 429);
-      }
-      console.log("Unexpected error at authorization endpoint:", { error: error instanceof Error ? { name: error.name, message: error.message } : error });
-      return c.html(HtmlFormContent({ usernameField: "username", passwordField: "password", errorMessage: "An unexpected error occurred. Please try again later." }), 500);
+
+      return c.redirect(`${redirectUri}?${searchParams.toString()}`);
+    } else {
+      const error = result.error;
+      console.log("Authorization endpoint error:", { error: error.name, message: error.message });
+      return c.html(
+        HtmlFormContent({
+          usernameField: "username",
+          passwordField: "password",
+          errorMessage: error.message,
+        }),
+        400,
+      );
     }
-  });
+  } catch (error) {
+    if (error instanceof HTTPRateLimitException) {
+      return c.html(
+        HtmlFormContent({
+          usernameField: "username",
+          passwordField: "password",
+          errorMessage: error.message,
+        }),
+        429,
+      );
+    }
+    console.log("Unexpected error at authorization endpoint:", {
+      error: error instanceof Error ? { name: error.name, message: error.message } : error,
+    });
+    return c.html(
+      HtmlFormContent({
+        usernameField: "username",
+        passwordField: "password",
+        errorMessage: "An unexpected error occurred. Please try again later.",
+      }),
+      500,
+    );
+  }
+});
 
 const schema = type({
   name: "string",
@@ -125,7 +156,9 @@ app.post(
 app.post(
   "/token",
   async (c) => {
-    const result = await clientCredentialsFlow.tokenFromHono(c);
+    console.log("Token endpoint called with body");
+    //const result = await clientCredentialsFlow.tokenFromHono(c);
+    const result = await authorizationCodeFlow.tokenFromHono(c);
     if (result.success) {
       return c.json(result.tokenResponse);
     } else {
@@ -137,6 +170,7 @@ app.post(
           400,
         );
       } else {
+        console.log("Token endpoint error:", { error: error.name, message: error.message });
         return c.json({ error: "invalid_request" }, 400);
       }
     }
@@ -162,7 +196,13 @@ app.get(
   }),
 );
 
-app.get("/ui", swaggerUI({ url: "/openapi.json" }));
+app.get("/docs/ui", swaggerUI({ url: "/openapi.json" }));
+// Serve the oauth2 redirect handler
+app.get("/docs/oauth2-redirect.html", (c) => {
+  return c.html(`<!doctype html><html><head><title>Swagger UI: OAuth2 Redirect</title></head><body>
+<script>'use strict';function run(){var o=window.opener.swaggerUIRedirectOauth2,s=o.state,r=o.redirectUrl,qp,arr;if(/code|token|error/.test(window.location.hash)){qp=window.location.hash.substring(1).replace('?','&');}else{qp=location.search.substring(1);}arr=qp.split("&");arr.forEach(function(v,i,_arr){_arr[i]='"'+v.replace('=','":"')+'"';});qp=qp?JSON.parse('{'+arr.join()+'}',function(key,value){return key?decodeURIComponent(value):value;}):{};if((o.auth.schema.get("flow")==="accessCode"||o.auth.schema.get("flow")==="authorizationCode"||o.auth.schema.get("flow")==="authorization_code")&&!o.auth.bearerFormat){window.history.replaceState({},window.document.title,window.location.pathname?window.location.pathname:'/');}if(qp.state===s){o.auth.code=qp.code;o.callback({auth:o.auth,redirectUrl:r});}else{o.callback({auth:o.auth,state:qp.state,redirectUrl:r,error:"State mismatch"});}}if(document.readyState!=='loading'){run();}else{document.addEventListener('DOMContentLoaded',run);}</script>
+</body></html>`);
+});
 
 app.get("/health", (c) => c.text("OK"));
 

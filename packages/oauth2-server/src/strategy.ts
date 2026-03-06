@@ -128,7 +128,7 @@ export async function evaluateStrategy(
     return { success: false, error: new StrategyInvalidTokenTypeError() };
   }
 
-  const tokenValidation = await options.tokenType.isValid(request, token);
+  const tokenValidation = await options.tokenType.isValid(request.clone(), token);
   if (!tokenValidation.isValid) {
     return { success: false, error: new StrategyInvalidTokenError(tokenValidation.message) };
   }
@@ -144,7 +144,7 @@ export async function evaluateStrategy(
 
   if (options.verifyToken) {
     try {
-      const result = await options.verifyToken(request, { token, jwtAccessTokenPayload });
+      const result = await options.verifyToken(request.clone(), { token, jwtAccessTokenPayload });
       if (result?.isValid && result.credentials) {
         return { success: true, credentials: result.credentials };
       }
