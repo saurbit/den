@@ -9,7 +9,7 @@ export function oauth2Redirect(c: Context) {
     <title>Swagger UI: OAuth2 Redirect</title>
   </head>
   <body>
-    Straight to the PR with this!
+    Redirecting...
     <script>
       "use strict";
         
