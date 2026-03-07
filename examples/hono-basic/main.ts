@@ -63,26 +63,22 @@ app.post("/authorize", async (c) => {
     const result = await authorizationCodeFlow.processAuthorizationFromHono(c);
 
     if (result.type === "error") {
+      // for security reasons, it is recommended to return a generic error message in production instead of the specific error message
       const error = result.error;
       console.log("Authorization endpoint error:", { error: error.name, message: error.message });
 
       if (result.redirectable) {
-        const searchParams = new URLSearchParams();
-        // for security reasons, it is recommended to return a generic error message in production instead of the specific error message
-        searchParams.set(
-          "error",
-          error instanceof AccessDeniedError ? error.errorCode : "invalid_request",
-        );
-        searchParams.set(
-          "error_description",
-          error instanceof AccessDeniedError ? error.message : "Invalid request",
-        );
-        if (result.state) {
-          searchParams.set("state", result.state);
-        }
-        return c.redirect(`${result.redirectUri}?${searchParams.toString()}`);
+        // If the error is redirectable, redirect the user to the client's redirect_uri with the error and state as query parameters
+        const qs = [
+          `error=${encodeURIComponent(error instanceof AccessDeniedError ? error.errorCode : "invalid_request")}`,
+          `error_description=${encodeURIComponent(error instanceof AccessDeniedError ? error.message : "Invalid request")}`,
+          result.state ? `state=${encodeURIComponent(result.state)}` : null,
+        ].filter(Boolean).join("&");
+
+        return c.redirect(`${result.redirectUri}?${qs}`);
       }
 
+      // If the error is not redirectable, render an error message
       return c.html(
         HtmlFormContent({
           usernameField: "username",
@@ -94,15 +90,13 @@ app.post("/authorize", async (c) => {
     }
 
     if (result.type === "code") {
+      // redirect the user to the client's redirect_uri with the authorization code and state as query parameters
       const { user, code, redirectUri, state } = result.authorizationCodeResponse;
       console.log("Authorization successful:", {
         user: user?.username,
         code,
         state,
       });
-
-      // In a real implementation, you would redirect the user to the client's redirect_uri with the authorization code and state as query parameters.
-      // Or you might render a consent page here for the user to authorize the client to access their resources.
 
       const searchParams = new URLSearchParams();
       searchParams.set("code", code);
@@ -112,8 +106,10 @@ app.post("/authorize", async (c) => {
 
       return c.redirect(`${redirectUri}?${searchParams.toString()}`);
     } else if (result.type === "continue") {
+      // In a real implementation, you would render a consent page here for the user to authorize the client to access their resources.
       return c.json({ message: "Consent page was not implemented" }, 500);
     } else if (result.type === "unauthenticated") {
+      // render the login page with an optional error message
       return c.html(
         HtmlFormContent({
           usernameField: "username",
@@ -124,6 +120,7 @@ app.post("/authorize", async (c) => {
       );
     }
   } catch (error) {
+    // unexpected errors should be logged and a generic error message should be returned to the user
     if (error instanceof HTTPRateLimitException) {
       return c.html(
         HtmlFormContent({

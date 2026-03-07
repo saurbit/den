@@ -93,11 +93,11 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
         });
       }
 
-      if (username === "admin" && password === "crossterm") {
+      if (username === "noconsent" && password === "crossterm") {
         return await Promise.resolve({
           type: "authenticated",
           user: {
-            username: "admin",
+            username: "noconsent",
             level: 2,
           },
         });
@@ -120,11 +120,11 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
         user,
       });
 
-      if (user?.username === "admin") {
+      if (user?.username === "noconsent") {
         return {
-          type: 'deny',
-          message: "Admins are not allowed to use the authorization code flow",
-        }
+          type: "deny",
+          message: "User did not consent to the authorization request",
+        };
       }
 
       // In a real implementation, you would generate a secure code here and associate it with the client, redirect URI, scope, and user
