@@ -38,6 +38,27 @@ export interface OAuth2AccessTokenResult {
   accessToken: string;
 }
 
+/** */
+export interface OAuth2RefreshTokenGrantContext {
+  grantType: "refresh_token";
+  client: OAuth2Client;
+  tokenType: string;
+  accessTokenLifetime: number;
+  refreshToken: string;
+  scope?: string[];
+}
+
+/**
+ * Raw refresh token request parameters for authorization code grant.
+ */
+export interface OAuth2RefreshTokenRequest {
+  grantType: "refresh_token";
+  clientId: string;
+  refreshToken: string;
+  clientSecret?: string;
+  scope?: string[];
+}
+
 export interface OAuth2GrantModel<
   TTokenRequest,
   TGrantContext,
@@ -50,7 +71,14 @@ export interface OAuth2GrantModel<
   /**
    * Generate an access token for the grant type.
    */
-  generateAccessToken(context: TGrantContext): Promise<string | TAccessToken | undefined>;
+  generateAccessToken(
+    context: TGrantContext,
+  ): Promise<string | TAccessToken | undefined> | string | TAccessToken | undefined;
+
+  // TODO: a method to generate access token from refresh token, if refresh token rotation is implemented
+  generateAccessTokenFromRefreshToken?(
+    context: OAuth2RefreshTokenGrantContext,
+  ): Promise<string | TAccessToken | undefined> | string | TAccessToken | undefined;
 }
 
 export abstract class OAuth2AuthFlow {

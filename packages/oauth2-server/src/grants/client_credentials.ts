@@ -87,7 +87,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
 
     let body: unknown;
     let grantTypeInBody: string | undefined;
-    let scopesInBody: string[] | undefined;
+    let scopeInBody: string[] | undefined;
     const contentType = req.headers.get("content-type") || "";
 
     if (contentType.includes("application/x-www-form-urlencoded")) {
@@ -107,7 +107,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
         grantTypeInBody = typeof body.grant_type === "string" ? body.grant_type : undefined;
       }
       if ("scope" in body) {
-        scopesInBody = typeof body.scope === "string" ? body.scope.split(" ") : undefined;
+        scopeInBody = typeof body.scope === "string" ? body.scope.split(" ") : undefined;
       }
     }
 
@@ -148,7 +148,7 @@ export class ClientCredentialsGrantFlow extends OAuth2AuthFlow implements Client
         clientId,
         clientSecret,
         grantType: grantTypeInBody,
-        scope: scopesInBody,
+        scope: scopeInBody,
       };
 
       // Validate client credentials using the model's getClient() method

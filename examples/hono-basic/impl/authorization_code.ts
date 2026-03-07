@@ -136,20 +136,58 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
 
     // -- at token endpoint
 
-    getClient: async ({ clientId, clientSecret: _c, grantType: _g }) => {
-      console.log("getClient called with:", { clientId, grantType: _g });
-      if (clientId === "my-client") {
+    getClient: async ({ clientId, clientSecret: _c, ...props }) => {
+      console.log("getClient called with:", { clientId, grantType: props.grantType });
+      if (props.grantType === "refresh_token") {
+        // For refresh token request, you would typically validate the refresh token and return the associated client information. For this example, we'll just return a dummy client object if the clientId matches.
+        if (clientId === "my-client" && props.refreshToken.startsWith("valid-refresh-token-")) {
+          // If asking for new scope, it cannot have scopes that are not
+          // in the original scope associated with the refresh token
+
+          const scope = props.refreshToken.slice("valid-refresh-token-".length).split(",");
+          const invalidScopes = props.scope?.filter((scope) => !scope.includes(scope));
+          if (invalidScopes && invalidScopes.length > 0) {
+            console.log("Invalid scopes in refresh token request:", {
+              requestedScopes: props.scope,
+              validScopes: scope,
+            });
+            return; // Return if there are invalid scopes in the request
+          }
+
+          return await Promise.resolve({
+            id: "my-client",
+            redirectUris: ["http://localhost/callback"],
+            grants: ["authorization_code"],
+            scopes: ["content:read", "content:write"],
+            metadata: {
+              // You can include any additional metadata here that you want
+              // to be available in the grant context for generating the access token
+              newScope: props.scope || scope,
+              exampleMetadata: "exampleValue",
+            },
+          });
+        }
+        return; // Return if the client is not found or the refresh token is invalid
+      }
+      if (clientId === "my-client" && props.code.startsWith("authcode-")) {
+        const scope = props.code.slice("authcode-".length).split(",");
         return await Promise.resolve({
           id: "my-client",
           redirectUris: ["http://localhost/callback"],
           grants: ["authorization_code"],
           scopes: ["content:read", "content:write"],
+          metadata: {
+            // You can include any additional metadata here that you want
+            // to be available in the grant context for generating the access token
+            newScope: scope,
+            exampleMetadata: "exampleValue",
+          },
         });
       }
     },
-    generateAccessToken: async ({
+    generateAccessToken: ({
       accessTokenLifetime: _a,
-      client: _c,
+      client,
       grantType: _g,
       tokenType: _t,
       code,
@@ -157,16 +195,34 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
       codeVerifier: _cv,
     }) => {
       console.log("generateAccessToken called with:", {
-        client: _c,
+        client,
         grantType: _g,
         tokenType: _t,
       });
       // In a real implementation, you would generate a secure token here
-      if (code.startsWith("authcode-")) {
-        return await Promise.resolve({
-          accessToken: "admin-" + code.slice("authcode-".length),
-          scope: code.slice("authcode-".length).split(","),
-        });
+      if (code.startsWith("authcode-") && Array.isArray(client.metadata?.newScope)) {
+        return {
+          accessToken: "admin-" + client.metadata?.newScope.join(","),
+          scope: client.metadata?.newScope,
+          refreshToken: "valid-refresh-token-" + client.metadata?.newScope.join(","),
+        };
+      }
+    },
+    generateAccessTokenFromRefreshToken: (context) => {
+      console.log("generateAccessTokenFromRefreshToken called with:", {
+        client: context.client,
+        grantType: context.grantType,
+        tokenType: context.tokenType,
+      });
+      // In a real implementation, you would generate a secure token here
+      if (
+        context.refreshToken.startsWith("valid-refresh-token-") &&
+        Array.isArray(context.client.metadata?.newScope)
+      ) {
+        return {
+          accessToken: "admin-" + context.refreshToken.slice("valid-refresh-token-".length),
+          scope: context.client.metadata?.newScope,
+        };
       }
     },
   },

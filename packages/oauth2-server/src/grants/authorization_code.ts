@@ -17,6 +17,8 @@ import {
   type OAuth2AuthFlowOptions,
   type OAuth2AuthFlowTokenResponse,
   type OAuth2GrantModel,
+  OAuth2RefreshTokenGrantContext,
+  OAuth2RefreshTokenRequest,
 } from "./auth_flow.ts";
 
 export interface AuthorizationCodeUser {
@@ -44,7 +46,7 @@ export interface AuthorizationCodeGrant {
  */
 export interface AuthorizationCodeGrantContext {
   client: OAuth2Client;
-  grantType: string;
+  grantType: "authorization_code";
   tokenType: string;
   accessTokenLifetime: number;
   code: string;
@@ -57,7 +59,7 @@ export interface AuthorizationCodeGrantContext {
  */
 export interface AuthorizationCodeTokenRequest {
   clientId: string;
-  grantType: string;
+  grantType: "authorization_code";
   code: string;
   codeVerifier?: string;
   clientSecret?: string;
@@ -212,7 +214,7 @@ export interface AuthorizationCodeModel<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
 > extends
   OAuth2GrantModel<
-    AuthorizationCodeTokenRequest,
+    AuthorizationCodeTokenRequest | OAuth2RefreshTokenRequest,
     AuthorizationCodeGrantContext,
     AuthorizationCodeAccessTokenResult
   > {
@@ -250,7 +252,7 @@ export class AuthorizationCodeGrantFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
 > extends OAuth2AuthFlow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
-  readonly #model: AuthorizationCodeModel;
+  readonly #model: AuthorizationCodeModel<AuthReqBody>;
 
   protected authorizationUrl: string = "/authorize";
 
@@ -544,13 +546,13 @@ export class AuthorizationCodeGrantFlow<
     };
   }
 
-  /**
-   * Handle a token request for the authorization code grant type.
-   * Validates the authorization code and generates an access token if valid.
-   * Returns an appropriate error response if validation fails.
-   * @param request The incoming HTTP request.
-   */
-  async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
+  async initiateToken(request: Request): Promise<
+    | {
+      success: true;
+      context: AuthorizationCodeGrantContext | OAuth2RefreshTokenGrantContext;
+    }
+    | { success: false; error: OAuth2Error }
+  > {
     const req = request.clone();
     if (req.method !== "POST") {
       return {
@@ -564,16 +566,22 @@ export class AuthorizationCodeGrantFlow<
     let codeInBody: string | undefined;
     let codeVerifierInBody: string | undefined;
     let redirectUriInBody: string | undefined;
+
+    let refreshTokenInBody: string | undefined;
+    let scopeInBody: string[] | undefined;
     const contentType = req.headers.get("content-type") || "";
 
     if (contentType.includes("application/x-www-form-urlencoded")) {
       const form = await req.formData();
       body = {
         grant_type: form.get("grant_type"),
-        scope: form.get("scope"),
         code: form.get("code"),
         code_verifier: form.get("code_verifier"),
         redirect_uri: form.get("redirect_uri"),
+
+        // for refresh token
+        refresh_token: form.get("refresh_token"),
+        scope: form.get("scope"),
       };
     } else if (contentType.includes("application/json")) {
       body = req.json ? await req.json() : null;
@@ -599,20 +607,35 @@ export class AuthorizationCodeGrantFlow<
       if ("redirect_uri" in body) {
         redirectUriInBody = typeof body.redirect_uri === "string" ? body.redirect_uri : undefined;
       }
+      if ("refresh_token" in body) {
+        refreshTokenInBody = typeof body.refresh_token === "string"
+          ? body.refresh_token
+          : undefined;
+      }
+      if ("scope" in body) {
+        scopeInBody = typeof body.scope === "string" ? body.scope.split(" ") : undefined;
+      }
     }
 
     // Validate that the grant type in the request body matches this grant type
-    if (grantTypeInBody !== this.grantType) {
+    if (grantTypeInBody === "refresh_token" && this.#model.generateAccessTokenFromRefreshToken) {
+      if (!refreshTokenInBody) {
+        return {
+          success: false,
+          error: new InvalidRequestError("Missing refresh token"),
+        };
+      }
+    } else if (grantTypeInBody === this.grantType) {
+      if (!codeInBody) {
+        return {
+          success: false,
+          error: new InvalidRequestError("Missing authorization code"),
+        };
+      }
+    } else {
       return {
         success: false,
         error: new UnsupportedGrantTypeError("Unsupported grant type"),
-      };
-    }
-
-    if (!codeInBody) {
-      return {
-        success: false,
-        error: new InvalidRequestError("Missing authorization code"),
       };
     }
 
@@ -647,20 +670,32 @@ export class AuthorizationCodeGrantFlow<
         };
       }
 
-      const tokenRequest: AuthorizationCodeTokenRequest = {
-        clientId,
-        clientSecret,
-        grantType: grantTypeInBody,
-        code: codeInBody,
-        codeVerifier: codeVerifierInBody,
-        redirectUri: redirectUriInBody,
-      };
-
       // Validate client credentials using the model's getClient() method
-      const client = await this.#model.getClient(
-        // avoid mutation
-        { ...tokenRequest },
-      );
+      let client: OAuth2Client | undefined;
+      if (grantTypeInBody === "authorization_code" && codeInBody) {
+        const tokenRequest: AuthorizationCodeTokenRequest = {
+          clientId,
+          clientSecret,
+          grantType: grantTypeInBody,
+          code: codeInBody,
+          codeVerifier: codeVerifierInBody,
+          redirectUri: redirectUriInBody,
+        };
+        client = await this.#model.getClient(
+          tokenRequest,
+        );
+      } else if (grantTypeInBody === "refresh_token" && refreshTokenInBody) {
+        const refreshTokenRequest: OAuth2RefreshTokenRequest = {
+          clientId,
+          clientSecret,
+          grantType: grantTypeInBody,
+          refreshToken: refreshTokenInBody,
+          scope: scopeInBody ? [...scopeInBody] : undefined,
+        };
+        client = await this.#model.getClient(
+          refreshTokenRequest,
+        );
+      }
 
       // If client authentication fails, return 401 error
       if (!client) {
@@ -680,56 +715,87 @@ export class AuthorizationCodeGrantFlow<
         };
       }
 
-      // Validate client metadata such as code, etc, ..., if applicable for client credentials grant
-      const grantContext: AuthorizationCodeGrantContext = {
-        client: client,
-        grantType: grantTypeInBody,
-        tokenType: this.tokenType,
-        accessTokenLifetime: this.accessTokenLifetime,
-        code: codeInBody,
-        codeVerifier: codeVerifierInBody,
-        redirectUri: redirectUriInBody,
-      };
-
-      // generate access token from client, valid scope,
-      // and any other relevant information,
-      // using the model's generateAccessToken() and generateRefreshToken() methods
-      const accessTokenResult = await this.#model.generateAccessToken?.(
-        // avoid mutation
-        { ...grantContext },
-      );
-
-      // If token generation fails
-      if (!accessTokenResult) {
-        return {
-          success: false,
-          error: new ServerError("Failed to generate access token"),
-        };
-      }
-
-      const tokenResponse: OAuth2TokenResponseBody = {
-        access_token: typeof accessTokenResult === "string"
-          ? accessTokenResult
-          : accessTokenResult.accessToken,
-        token_type: this.tokenType,
-        expires_in: grantContext.accessTokenLifetime,
-        scope: typeof accessTokenResult === "object" ? accessTokenResult.scope?.join(" ") : "",
-      };
-
-      if (
-        typeof accessTokenResult === "object" &&
-        typeof accessTokenResult.refreshToken === "string"
-      ) {
-        tokenResponse.refresh_token = accessTokenResult.refreshToken;
-      }
-
       return {
         success: true,
-        tokenResponse,
+        context: grantTypeInBody === "authorization_code"
+          ? {
+            client,
+            grantType: grantTypeInBody,
+            tokenType: this.tokenType,
+            accessTokenLifetime: this.accessTokenLifetime,
+            code: codeInBody!,
+            codeVerifier: codeVerifierInBody,
+            redirectUri: redirectUriInBody,
+          }
+          : {
+            client,
+            grantType: grantTypeInBody,
+            tokenType: this.tokenType,
+            accessTokenLifetime: this.accessTokenLifetime,
+            refreshToken: refreshTokenInBody!,
+            scope: scopeInBody,
+          },
       };
     }
 
     return { success: false, error };
+  }
+
+  /**
+   * Handle a token request for the authorization code grant type.
+   * Validates the authorization code and generates an access token if valid.
+   * Returns an appropriate error response if validation fails.
+   * @param request The incoming HTTP request.
+   */
+  async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
+    const initiationResult = await this.initiateToken(request);
+
+    if (!initiationResult.success) {
+      return initiationResult;
+    }
+
+    const { context } = initiationResult;
+
+    // generate access token from client, valid scope,
+    // and any other relevant information,
+    // using the model's generateAccessToken() or generateAccessTokenFromRefreshToken() methods
+    const accessTokenResult = context.grantType === "authorization_code"
+      ? await this.#model.generateAccessToken?.(
+        // avoid mutation
+        { ...context },
+      )
+      : await this.#model.generateAccessTokenFromRefreshToken?.(
+        { ...context },
+      );
+
+    // If token generation fails
+    if (!accessTokenResult) {
+      return {
+        success: false,
+        error: new ServerError("Failed to generate access token"),
+      };
+    }
+
+    const tokenResponse: OAuth2TokenResponseBody = {
+      access_token: typeof accessTokenResult === "string"
+        ? accessTokenResult
+        : accessTokenResult.accessToken,
+      token_type: this.tokenType,
+      expires_in: context.accessTokenLifetime,
+      scope: typeof accessTokenResult === "object" ? accessTokenResult.scope?.join(" ") : "",
+    };
+
+    if (
+      typeof accessTokenResult === "object" &&
+      typeof accessTokenResult.refreshToken === "string"
+    ) {
+      tokenResponse.refresh_token = accessTokenResult.refreshToken;
+    }
+
+    return {
+      success: true,
+      tokenResponse,
+    };
   }
 
   toOpenAPISecurityScheme() {
