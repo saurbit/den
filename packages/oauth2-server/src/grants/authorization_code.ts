@@ -317,7 +317,7 @@ export class AuthorizationCodeGrantFlow<
     return this.authorizationUrl;
   }
 
-  async getAuthorizationCodeEndpointContext(
+  protected async getAuthorizationCodeEndpointContext(
     request: Request,
   ): Promise<AuthorizationCodeInitiationResponse> {
     const query = new URL(request.url).searchParams;
@@ -445,25 +445,17 @@ export class AuthorizationCodeGrantFlow<
 
     const {
       client,
-      responseType,
       redirectUri,
       scope,
       state,
-      codeChallenge,
-      codeChallengeMethod,
       nonce,
     } = context.context;
 
     const userResult = await this.#model.getUserForAuthentication(
+      // avoid mutation
       {
-        client,
-        responseType,
-        redirectUri,
+        ...context.context,
         scope: [...scope],
-        state,
-        codeChallenge,
-        codeChallengeMethod,
-        nonce,
       },
       reqBody,
       request.clone(),
@@ -474,14 +466,8 @@ export class AuthorizationCodeGrantFlow<
         type: "unauthenticated",
         //error: new InvalidClientError(userResult.message || "Invalid user credentials"),
         context: {
-          client,
-          responseType,
-          redirectUri,
+          ...context.context,
           scope: [...scope],
-          state,
-          codeChallenge,
-          codeChallengeMethod,
-          nonce,
         },
         message: userResult?.message,
       };
@@ -489,14 +475,8 @@ export class AuthorizationCodeGrantFlow<
 
     const codeResult = await this.#model.generateAuthorizationCode(
       {
-        client,
-        responseType,
-        redirectUri,
+        ...context.context,
         scope: [...scope],
-        state,
-        codeChallenge,
-        codeChallengeMethod,
-        nonce,
       },
       userResult.user,
     );
@@ -829,7 +809,8 @@ export class AuthorizationCodeGrantFlow<
         { ...context },
       )
       : await this.#model.generateAccessTokenFromRefreshToken?.(
-        { ...context },
+        // avoid mutation
+        { ...context, scope: context.scope ? [...context.scope] : undefined },
       );
 
     // If token generation fails
