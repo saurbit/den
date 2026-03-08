@@ -276,14 +276,14 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
 > extends OAuth2AuthFlow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
-  readonly #model: AuthorizationCodeModel<AuthReqBody>;
+  protected readonly model: AuthorizationCodeModel<AuthReqBody>;
 
   protected authorizationUrl: string = "/authorize";
 
   constructor(options: AuthorizationCodeGrantFlowOptions<AuthReqBody>) {
     const { model, authorizationUrl, ...flowOptions } = { ...options };
     super(flowOptions);
-    this.#model = model;
+    this.model = model;
     if (authorizationUrl) {
       this.authorizationUrl = authorizationUrl;
     }
@@ -345,7 +345,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
     // In a real implementation, you would validate the client_id and redirect_uri here,
     // and then generate an authorization code and redirect the user to the redirect_uri with the code and state as query parameters.
 
-    const client = await this.#model.getClientForAuthentication({
+    const client = await this.model.getClientForAuthentication({
       clientId,
       responseType,
       redirectUri,
@@ -434,7 +434,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
       state,
     } = context.context;
 
-    const userResult = await this.#model.getUserForAuthentication(
+    const userResult = await this.model.getUserForAuthentication(
       // avoid mutation
       {
         ...context.context,
@@ -456,7 +456,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
       };
     }
 
-    const codeResult = await this.#model.generateAuthorizationCode(
+    const codeResult = await this.model.generateAuthorizationCode(
       {
         ...context.context,
         scope: [...scope],
@@ -629,7 +629,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
     }
 
     // Validate that the grant type in the request body matches this grant type
-    if (grantTypeInBody === "refresh_token" && this.#model.generateAccessTokenFromRefreshToken) {
+    if (grantTypeInBody === "refresh_token" && this.model.generateAccessTokenFromRefreshToken) {
       if (!refreshTokenInBody) {
         return {
           success: false,
@@ -706,7 +706,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
           codeVerifier: codeVerifierInBody,
           redirectUri: redirectUriInBody,
         };
-        client = await this.#model.getClient(
+        client = await this.model.getClient(
           tokenRequest,
         );
       } else if (grantTypeInBody === "refresh_token" && refreshTokenInBody) {
@@ -717,7 +717,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
           refreshToken: refreshTokenInBody,
           scope: scopeInBody ? [...scopeInBody] : undefined,
         };
-        client = await this.#model.getClient(
+        client = await this.model.getClient(
           refreshTokenRequest,
         );
       }
@@ -785,11 +785,11 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
     // and any other relevant information,
     // using the model's generateAccessToken() or generateAccessTokenFromRefreshToken() methods
     const accessTokenResult = context.grantType === "authorization_code"
-      ? await this.#model.generateAccessToken?.(
+      ? await this.model.generateAccessToken?.(
         // avoid mutation
         { ...context },
       )
-      : await this.#model.generateAccessTokenFromRefreshToken?.(
+      : await this.model.generateAccessTokenFromRefreshToken?.(
         // avoid mutation
         { ...context, scope: context.scope ? [...context.scope] : undefined },
       );

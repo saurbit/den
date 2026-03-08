@@ -9,17 +9,20 @@ import {
   AuthorizationCodeReqBody,
 } from "../grants/authorization_code.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
-import { OpenIDFlowTokenResponse } from "./types.ts";
+import { OpenIDFlowTokenResponse, OpenIDUserInfo } from "./types.ts";
 
 /*
 OIDC requires:
-- openid scope (profile, email, address, phone are optional but standardized)
-- ID Token
-- UserInfo endpoint
-- Standard claims (at least sub)
-- Discovery document (well-known OpenID configuration)
-- JWKS endpoint (JSON Web Key Set)
-- nonce parameter for authorization code flow with response_type=code id_token
+- by library:
+  - ID Token - implemented by the model's generateAccessToken() method and included in the token response - DONE
+  - Discovery document (well-known OpenID configuration) - implemented by the flow and can be customized with openIdConfiguration option - DONE
+  - openid scope (profile, email, address, phone are optional but standardized) - TODO
+
+- by end developer:
+  - UserInfo endpoint - can be implemented by the model's getUserInfo method and included in the discovery document
+  - Standard claims (at least sub) - to implement by the end developer to include in the ID token, in UserInfo response and optionally in the model's getUserInfo method
+  - JWKS endpoint (JSON Web Key Set) - can be implemented by the end developer and included in the discovery document
+  - nonce parameter for authorization code flow with response_type=code id_token - can be implemented by the model and included in the discovery document, but it's optional for authorization code flow without id_token in the response type
 */
 
 export interface OpenIDAuthorizationCodeAccessTokenResult
@@ -47,6 +50,16 @@ export interface OpenIDAuthorizationCodeModel<
     | Promise<OpenIDAuthorizationCodeAccessTokenResult | undefined>
     | OpenIDAuthorizationCodeAccessTokenResult
     | undefined;
+
+  /**
+   * Retrieves the user information associated with the given access token.
+   * This method can be implemented to provide user information
+   * for the UserInfo endpoint in the OpenID Connect flow.
+   * @param accessToken The access token for which to retrieve user information.
+   */
+  getUserInfo?(
+    accessToken: string,
+  ): Promise<OpenIDUserInfo | undefined> | OpenIDUserInfo | undefined;
 }
 
 /**
@@ -106,6 +119,14 @@ export class OpenIDAuthorizationCodeFlow<
 
   getOpenIdConfiguration(): Record<string, string | string[] | undefined> | undefined {
     return this.openIdConfiguration;
+  }
+
+  async getUserInfo(accessToken: string): Promise<OpenIDUserInfo | undefined> {
+    const model = this.model as OpenIDAuthorizationCodeModel<AuthReqBody>;
+    if (typeof model.getUserInfo === "function") {
+      return await model.getUserInfo(accessToken);
+    }
+    return undefined;
   }
 
   toOpenAPISecurityScheme() {

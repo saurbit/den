@@ -8,3 +8,8 @@ export interface OpenIDTokenResponseBody extends OAuth2TokenResponseBody {
 export type OpenIDFlowTokenResponse =
   | { success: true; tokenResponse: OpenIDTokenResponseBody }
   | { success: false; error: OAuth2Error };
+
+export interface OpenIDUserInfo {
+  sub: string;
+  [claim: string]: unknown;
+}

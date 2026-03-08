@@ -66,12 +66,12 @@ export interface ClientCredentialsGrantFlowOptions extends OAuth2AuthFlowOptions
 export abstract class AbstractClientCredentialsGrantFlow extends OAuth2AuthFlow
   implements ClientCredentialsGrant {
   readonly grantType = "client_credentials" as const;
-  readonly #model: ClientCredentialsModel;
+  protected readonly model: ClientCredentialsModel;
 
   constructor(options: ClientCredentialsGrantFlowOptions) {
     const { model, ...flowOptions } = { ...options };
     super(flowOptions);
-    this.#model = model;
+    this.model = model;
   }
 
   /**
@@ -153,7 +153,7 @@ export abstract class AbstractClientCredentialsGrantFlow extends OAuth2AuthFlow
       };
 
       // Validate client credentials using the model's getClient() method
-      const client = await this.#model.getClient(
+      const client = await this.model.getClient(
         // avoid mutation
         { ...tokenRequest, scope: tokenRequest.scope ? [...tokenRequest.scope] : [] },
       );
@@ -193,7 +193,7 @@ export abstract class AbstractClientCredentialsGrantFlow extends OAuth2AuthFlow
       // generate access token from client, valid scope,
       // and any other relevant information,
       // using the model's generateAccessToken() and generateRefreshToken() methods
-      const accessTokenResult = await this.#model.generateAccessToken?.(
+      const accessTokenResult = await this.model.generateAccessToken?.(
         // avoid mutation
         { ...grantContext, scope: [...grantContext.scope] },
       );
