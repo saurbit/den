@@ -342,7 +342,8 @@ export class OpenIDAuthorizationCodeFlow<
     const nonce = query.get("nonce") || undefined;
     const tmpPrompt = query.get("prompt") || undefined;
     const prompt = isPrompt(tmpPrompt) ? tmpPrompt : undefined;
-    const maxAge = query.get("max_age") ? parseInt(query.get("max_age")!, 10) : undefined;
+    const rawMaxAge = query.get("max_age");
+    const maxAge = rawMaxAge ? (Number.isFinite(parseInt(rawMaxAge, 10)) ? parseInt(rawMaxAge, 10) : undefined) : undefined;
     const uiLocales = query.get("ui_locales")
       ? query.get("ui_locales")!.split(" ").filter((l) => l)
       : undefined;
