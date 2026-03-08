@@ -1,4 +1,4 @@
-import { InvalidRequestError, ServerError } from "../errors.ts";
+import { InvalidRequestError, ServerError, UnsupportedResponseTypeError } from "../errors.ts";
 import {
   OAuth2AuthFlowTokenResponse,
   OAuth2RefreshTokenGrantContext,
@@ -6,16 +6,20 @@ import {
 import {
   AbstractAuthorizationCodeGrantFlow,
   AuthorizationCodeAccessTokenResult,
+  AuthorizationCodeEndpointContext,
+  AuthorizationCodeEndpointRequest,
   AuthorizationCodeGrantContext,
   AuthorizationCodeGrantFlowOptions,
   AuthorizationCodeInitiationResponse,
   AuthorizationCodeModel,
+  AuthorizationCodeProcessResponse,
   AuthorizationCodeReqBody,
 } from "../grants/authorization_code.ts";
+import { OAuth2Client } from "../types.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
 import { OpenIDUserInfo } from "./types.ts";
 
-/*
+/*---
 OIDC requires:
 - by library:
   - ID Token - implemented by the model's generateAccessToken() method and included in the token response - DONE
@@ -27,7 +31,79 @@ OIDC requires:
   - Standard claims (at least sub) - to implement by the end developer to include in the ID token, in UserInfo response and optionally in the model's getUserInfo method
   - JWKS endpoint (JSON Web Key Set) - can be implemented by the end developer and included in the discovery document
   - nonce parameter for authorization code flow with response_type=code id_token - can be implemented by the model and included in the discovery document, but it's optional for authorization code flow without id_token in the response type
-*/
+---*/
+
+function isPrompt(value?: string | null): value is "none" | "login" | "consent" | "select_account" {
+  return value === "none" || value === "login" || value === "consent" || value === "select_account";
+}
+
+function isDisplay(value?: string | null): value is "page" | "popup" | "touch" | "wap" {
+  return value === "page" || value === "popup" || value === "touch" || value === "wap";
+}
+
+export interface OpenIDAuthenticationRequestParams {
+  /**
+   * The `nonce` parameter is a string value used to associate a client session with an ID token, and to mitigate replay attacks. It is included in the authorization request and should be returned in the ID token. The client should generate a unique nonce value for each authentication request and verify that the same value is present in the ID token upon receipt. This helps ensure that the ID token was issued in response to the client's authentication request and not replayed by an attacker. The `prompt` parameter can be used to control how the authorization server prompts the user for authentication and consent, which can be important for user experience and security. The `max_age` parameter specifies the maximum age of the user's authentication, allowing clients to require re-authentication after a certain period of time for added security. The `ui_locales` parameter allows clients to specify their preferred languages and scripts for the user interface, enhancing localization and user experience. The `id_token_hint` parameter can be used to pass an existing ID token as a hint to the authorization server about the user's current authentication state, which can help streamline the authentication process. The `login_hint` parameter can be used to provide a hint to the authorization server about the user's identifier (e.g., email or username), which can help pre-fill login forms and improve user experience. The `acr_values` parameter allows clients to specify desired Authentication Class References, which can be used by the authorization server to determine the appropriate level of authentication required for the request. The `display` parameter can be used to specify how the authorization server should display the authentication and consent user interface, allowing clients to optimize for different device types and user experiences.
+   */
+  nonce?: string;
+  /**
+   * The `display` parameter is used to specify how the authorization server should display the authentication and consent user interface. It allows clients to optimize the user experience for different device types and contexts. The `display` parameter can take the following values:
+   * - `page`: The authorization server should display the authentication and consent user interface in a full-page view. This is the default behavior if the `display` parameter is not specified.
+   * - `popup`: The authorization server should display the authentication and consent user interface in a popup window. This can be used to provide a more seamless user experience without navigating away from the client's application.
+   * - `touch`: The authorization server should display a user interface optimized for touch devices, such as smartphones and tablets. This can help improve usability on mobile devices.
+   * - `wap`: The authorization server should display a user interface optimized for feature phones and other devices with limited capabilities. This can help ensure that users on older or less capable devices can still authenticate successfully.
+   * By including the `display` parameter in the authorization request, clients can enhance the user experience by providing an appropriate interface for the user's device and context. The `display` parameter is part of the OpenID Connect specification and can be included in the authorization request to optimize the authentication and consent user interface for different scenarios.
+   */
+  display?: "page" | "popup" | "touch" | "wap";
+  /**
+   * The `prompt` parameter is used to specify whether the authorization server should prompt the user for re-authentication and/or consent. It can take the following values:
+   * - `none`: The authorization server must not display any authentication or consent user interface pages. If the user is not already authenticated and has not previously given consent, the authorization request will fail with an error.
+   * - `login`: The authorization server should prompt the user to re-authenticate, even if they are already authenticated. This can be used to ensure that the user is actively involved in the authentication process.
+   * - `consent`: The authorization server should prompt the user for consent before issuing tokens. This can be used to ensure that the user is aware of and agrees to the scopes being requested by the client.
+   * - `select_account`: The authorization server should prompt the user to select an account if they are authenticated with multiple accounts. This can be used to allow users to choose which account they want to use for the authentication request.
+   * Multiple values can be included in a space-separated list if more than one behavior is desired (e.g., `prompt=login consent` would require the user to both re-authenticate and provide consent). The `prompt` parameter is an important part of the OpenID Connect authentication flow, as it allows clients to control the user experience and ensure that users are properly authenticated and have given consent for the requested scopes.
+   */
+  prompt?: "none" | "login" | "consent" | "select_account";
+  /**
+   * The `max_age` parameter specifies the maximum age of the user's authentication in seconds. If the user's authentication is older than the specified time, the authorization server should prompt the user to re-authenticate. This parameter can be used by clients to ensure that users are recently authenticated, which can be important for security-sensitive applications. For example, a client might set `max_age=3600` to require users to re-authenticate if their last authentication was more than an hour ago. The `max_age` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance security by enforcing re-authentication when necessary.
+   */
+  maxAge?: number;
+  /**
+   * The `ui_locales` parameter is used by clients to specify their preferred languages and scripts for the user interface of the authorization server. It is a space-separated list of BCP47 language tag values (e.g., `en`, `en-US`, `fr`, `fr-CA`, `zh-Hans`, `zh-Hant`). By including this parameter in the authorization request, clients can indicate to the authorization server which languages and scripts they prefer for displaying authentication and consent user interfaces. This allows the authorization server to provide a localized experience for users, improving usability and accessibility for a global audience. The `ui_locales` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance localization and user experience.
+   */
+  uiLocales?: string[];
+  /**
+   * The `id_token_hint` parameter is used to pass an existing ID token as a hint to the authorization server about the user's current authentication state. This can help streamline the authentication process by allowing the authorization server to recognize that the user is already authenticated and potentially skip additional authentication steps. The `id_token_hint` parameter is typically included in the authorization request when the client has an existing ID token for the user, such as from a previous authentication session. By providing this hint, the client can improve the user experience by reducing unnecessary prompts for authentication, while still allowing the authorization server to enforce security policies as needed. The `id_token_hint` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance user experience and streamline authentication.
+   */
+  idTokenHint?: string;
+  /**
+   * The `login_hint` parameter is used to provide a hint to the authorization server about the user's identifier, such as their email address or username. This can help pre-fill login forms and improve the user experience by reducing the amount of information the user needs to enter during authentication. The `login_hint` parameter is typically included in the authorization request when the client has some information about the user that can be used to assist with authentication. By providing this hint, the client can enhance the user experience while still allowing the authorization server to enforce security policies and ensure proper authentication. The `login_hint` parameter is part of the OpenID Connect specification and can be included in the authorization request to improve user experience during authentication.
+   */
+  loginHint?: string;
+  /**
+   * The `acr_values` parameter allows clients to specify desired Authentication Class References (ACR) values, which can be used by the authorization server to determine the appropriate level of authentication required for the request. ACR values are identifiers that represent different authentication methods or levels of assurance (e.g., password-based authentication, multi-factor authentication, biometric authentication). By including the `acr_values` parameter in the authorization request, clients can indicate their preferences for the authentication methods that should be used to authenticate the user. The authorization server can then use this information to select an appropriate authentication method based on the client's preferences and the user's available authentication options. The `acr_values` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance security by allowing clients to specify their desired authentication requirements.
+   */
+  acrValues?: string[];
+}
+
+export interface OpenIDAuthorizationCodeEndpointRequest
+  extends AuthorizationCodeEndpointRequest, OpenIDAuthenticationRequestParams {
+}
+
+/**
+ * Validation context for OpenID Connect authorization code flow.
+ * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+ */
+export interface OpenIDAuthorizationCodeEndpointContext
+  extends AuthorizationCodeEndpointContext, OpenIDAuthenticationRequestParams {
+}
+
+export type OpenIDAuthorizationCodeInitiationResponse = AuthorizationCodeInitiationResponse<
+  OpenIDAuthorizationCodeEndpointContext
+>;
+export type OpenIDAuthorizationCodeProcessResponse = AuthorizationCodeProcessResponse<
+  OpenIDAuthorizationCodeEndpointContext
+>;
 
 export interface OpenIDAuthorizationCodeAccessTokenResult
   extends AuthorizationCodeAccessTokenResult {
@@ -41,6 +117,10 @@ export interface OpenIDAuthorizationCodeAccessTokenResult
 export interface OpenIDAuthorizationCodeModel<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
 > extends AuthorizationCodeModel<AuthReqBody> {
+  getClientForAuthentication(
+    authRequest: OpenIDAuthorizationCodeEndpointRequest,
+  ): Promise<OAuth2Client | undefined>;
+
   generateAccessToken(
     context: AuthorizationCodeGrantContext,
   ):
@@ -212,9 +292,62 @@ export class OpenIDAuthorizationCodeFlow<
 
   protected override async getAuthorizationCodeEndpointContext(
     request: Request,
-  ): Promise<AuthorizationCodeInitiationResponse> {
+  ): Promise<OpenIDAuthorizationCodeInitiationResponse> {
     const query = new URL(request.url).searchParams;
+    const clientId = query.get("client_id") || undefined;
+    const responseType = query.get("response_type") || undefined;
+    const redirectUri = query.get("redirect_uri") || undefined;
     const scope = query.get("scope") || undefined;
+    const state = query.get("state") || undefined;
+    const codeChallenge = query.get("code_challenge") || undefined;
+    const tmpCodeChallengeMethod = query.get("code_challenge_method");
+    const codeChallengeMethod: "S256" | "plain" | undefined = tmpCodeChallengeMethod === "S256"
+      ? "S256"
+      : tmpCodeChallengeMethod === "plain"
+        ? "plain"
+        : codeChallenge
+          ? "plain" // RFC 7636 §4.3 default
+          : undefined;
+
+    const nonce = query.get("nonce") || undefined;
+    const tmpPrompt = query.get("prompt") || undefined;
+    const prompt = isPrompt(tmpPrompt) ? tmpPrompt : undefined;
+    const maxAge = query.get("max_age") ? parseInt(query.get("max_age")!, 10) : undefined;
+    const uiLocales = query.get("ui_locales")
+      ? query.get("ui_locales")!.split(" ").filter((l) => l)
+      : undefined;
+    const idTokenHint = query.get("id_token_hint") || undefined;
+    const loginHint = query.get("login_hint") || undefined;
+    const acrValues = query.get("acr_values")
+      ? query.get("acr_values")!.split(" ").filter((v) => v)
+      : undefined;
+    const tmpDisplay = query.get("display") || undefined;
+    const display = isDisplay(tmpDisplay) ? tmpDisplay : undefined;
+
+    if (!clientId) {
+      return {
+        success: false,
+        error: new InvalidRequestError("Missing client_id parameter"),
+        redirectable: false,
+      };
+    }
+
+    if (responseType !== "code") {
+      return {
+        success: false,
+        error: new UnsupportedResponseTypeError("Unsupported response type"),
+        redirectable: false,
+      };
+    }
+
+    if (!redirectUri) {
+      return {
+        success: false,
+        error: new InvalidRequestError("Missing redirect_uri parameter"),
+        redirectable: false,
+      };
+    }
+
     if (!scope || !scope.split(" ").includes("openid")) {
       return {
         success: false,
@@ -224,7 +357,70 @@ export class OpenIDAuthorizationCodeFlow<
         redirectable: false,
       };
     }
-    return await super.getAuthorizationCodeEndpointContext(request);
+
+    // In a real implementation, you would validate the client_id and redirect_uri here,
+    // and then generate an authorization code and redirect the user to the redirect_uri with the code and state as query parameters.
+
+    const reqParams: OpenIDAuthorizationCodeEndpointRequest = {
+      clientId,
+      responseType,
+      redirectUri,
+      scope: scope ? scope.split(" ") : undefined,
+      state,
+      codeChallenge,
+      codeChallengeMethod,
+      nonce,
+      prompt,
+      maxAge,
+      uiLocales: uiLocales ? [...uiLocales] : undefined,
+      idTokenHint,
+      loginHint,
+      acrValues: acrValues ? [...acrValues] : undefined,
+      display,
+    }
+
+    const client = await this.model.getClientForAuthentication(reqParams);
+
+    if (!client) {
+      return {
+        success: false,
+        error: new InvalidRequestError(
+          "Invalid client_id or redirect_uri or scope",
+        ),
+        redirectable: false,
+      };
+    }
+
+    // Validate scope if provided in the request body (optional)
+    let validatedScopes: string[];
+    if (client.scopes) {
+      const allowedScopes = client.scopes ? client.scopes : [];
+      validatedScopes = scope?.split(" ")?.filter((scope) => allowedScopes.includes(scope)) ||
+        [];
+    } else {
+      validatedScopes = [];
+    }
+
+    return {
+      success: true,
+      context: {
+        client,
+        responseType,
+        redirectUri,
+        scope: validatedScopes,
+        state,
+        codeChallenge,
+        codeChallengeMethod,
+        nonce,
+        prompt,
+        maxAge,
+        uiLocales,
+        idTokenHint,
+        loginHint,
+        acrValues,
+        display,
+      },
+    };
   }
 
   override getScopes(): Record<string, string> | undefined {

@@ -93,12 +93,6 @@ export interface AuthorizationCodeEndpointContext {
   codeChallenge?: string;
   /** PKCE code challenge method (`plain` | `S256`). */
   codeChallengeMethod?: "plain" | "S256";
-  /**
-   * for OpenID Connect, the nonce parameter is required in the authorization request and should be included in the context for generating the authorization code, so that it can be associated with the authorization code and later included in the ID token when exchanging the authorization code for tokens at the token endpoint.
-   * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-   * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
-   */
-  nonce?: string;
 }
 
 /**
@@ -114,12 +108,6 @@ export interface AuthorizationCodeEndpointRequest {
   codeChallenge?: string;
   /** PKCE code challenge method (`plain` | `S256`). */
   codeChallengeMethod?: "plain" | "S256";
-  /**
-   * for OpenID Connect, the nonce parameter is required in the authorization request and should be included in the context for generating the authorization code, so that it can be associated with the authorization code and later included in the ID token when exchanging the authorization code for tokens at the token endpoint.
-   * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-   * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
-   */
-  nonce?: string;
 }
 
 export interface AuthorizationCodeEndpointContinueResponse
@@ -164,11 +152,15 @@ export type AuthorizationCodeEndpointResponse =
     state?: string;
   };
 
-export type AuthorizationCodeInitiationResponse =
-  | { success: true; context: AuthorizationCodeEndpointContext }
+export type AuthorizationCodeInitiationResponse<
+  C extends AuthorizationCodeEndpointContext = AuthorizationCodeEndpointContext,
+> =
+  | { success: true; context: C }
   | { success: false; error: OAuth2Error; redirectable: false };
 
-export type AuthorizationCodeProcessResponse =
+export type AuthorizationCodeProcessResponse<
+  C extends AuthorizationCodeEndpointContext = AuthorizationCodeEndpointContext,
+> =
   | {
     type: "continue";
     continueResponse: AuthorizationCodeEndpointContinueResponse;
@@ -179,7 +171,7 @@ export type AuthorizationCodeProcessResponse =
   }
   | {
     type: "unauthenticated";
-    context: AuthorizationCodeEndpointContext;
+    context: C;
     message?: string;
   }
   | {
@@ -308,7 +300,6 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
     const scope = query.get("scope") || undefined;
     const state = query.get("state") || undefined;
     const codeChallenge = query.get("code_challenge") || undefined;
-    const nonce = query.get("nonce") || undefined;
     const tmpCodeChallengeMethod = query.get("code_challenge_method");
     const codeChallengeMethod: "S256" | "plain" | undefined = tmpCodeChallengeMethod === "S256"
       ? "S256"
@@ -353,7 +344,6 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
       state,
       codeChallenge,
       codeChallengeMethod,
-      nonce,
     });
 
     if (!client) {
@@ -386,7 +376,6 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
         state,
         codeChallenge,
         codeChallengeMethod,
-        nonce,
       },
     };
   }

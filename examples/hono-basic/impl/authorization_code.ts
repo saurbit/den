@@ -35,7 +35,6 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
       redirectUri,
       responseType: _rt,
       codeChallenge: _cc,
-      nonce: _n,
       state: _s,
       scope: _scope,
     }) => {
@@ -44,7 +43,6 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
         redirectUri,
         responseType: _rt,
         codeChallenge: _cc,
-        nonce: _n,
         state: _s,
         scopes: _scope,
       });
@@ -64,7 +62,6 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
         redirectUri: _r,
         responseType: _rt,
         codeChallenge: _cc,
-        nonce: _n,
         state: _s,
         scope: _scope,
       },
@@ -75,7 +72,6 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
         redirectUri: _r,
         responseType: _rt,
         codeChallenge: _cc,
-        nonce: _n,
         state: _s,
         scopes: _scope,
         username,
@@ -109,7 +105,6 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
       redirectUri: _r,
       responseType: _rt,
       codeChallenge: _cc,
-      nonce: _n,
       scope,
       state: _s,
     }, user) => {
