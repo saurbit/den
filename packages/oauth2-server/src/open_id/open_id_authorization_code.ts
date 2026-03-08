@@ -9,12 +9,14 @@ import {
   AuthorizationCodeEndpointContext,
   AuthorizationCodeEndpointRequest,
   AuthorizationCodeEndpointResponse,
+  AuthorizationCodeGeneratorResult,
   AuthorizationCodeGrantContext,
   AuthorizationCodeGrantFlowOptions,
   AuthorizationCodeInitiationResponse,
   AuthorizationCodeModel,
   AuthorizationCodeProcessResponse,
   AuthorizationCodeReqBody,
+  AuthorizationCodeUser,
 } from "../grants/authorization_code.ts";
 import { OAuth2Client } from "../types.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
@@ -44,9 +46,11 @@ function isDisplay(value?: string | null): value is "page" | "popup" | "touch" |
 
 export interface OpenIDAuthenticationRequestParams {
   /**
-   * The `nonce` parameter is a string value used to associate a client session with an ID token, and to mitigate replay attacks. It is included in the authorization request and should be returned in the ID token. The client should generate a unique nonce value for each authentication request and verify that the same value is present in the ID token upon receipt. This helps ensure that the ID token was issued in response to the client's authentication request and not replayed by an attacker. The `prompt` parameter can be used to control how the authorization server prompts the user for authentication and consent, which can be important for user experience and security. The `max_age` parameter specifies the maximum age of the user's authentication, allowing clients to require re-authentication after a certain period of time for added security. The `ui_locales` parameter allows clients to specify their preferred languages and scripts for the user interface, enhancing localization and user experience. The `id_token_hint` parameter can be used to pass an existing ID token as a hint to the authorization server about the user's current authentication state, which can help streamline the authentication process. The `login_hint` parameter can be used to provide a hint to the authorization server about the user's identifier (e.g., email or username), which can help pre-fill login forms and improve user experience. The `acr_values` parameter allows clients to specify desired Authentication Class References, which can be used by the authorization server to determine the appropriate level of authentication required for the request. The `display` parameter can be used to specify how the authorization server should display the authentication and consent user interface, allowing clients to optimize for different device types and user experiences.
+   * The `nonce` parameter is a string value used to associate a client session with an ID token, and to mitigate replay attacks.
+   * It is included in the authorization request and should be returned in the ID token.
    */
   nonce?: string;
+
   /**
    * The `display` parameter is used to specify how the authorization server should display the authentication and consent user interface. It allows clients to optimize the user experience for different device types and contexts. The `display` parameter can take the following values:
    * - `page`: The authorization server should display the authentication and consent user interface in a full-page view. This is the default behavior if the `display` parameter is not specified.
@@ -56,6 +60,7 @@ export interface OpenIDAuthenticationRequestParams {
    * By including the `display` parameter in the authorization request, clients can enhance the user experience by providing an appropriate interface for the user's device and context. The `display` parameter is part of the OpenID Connect specification and can be included in the authorization request to optimize the authentication and consent user interface for different scenarios.
    */
   display?: "page" | "popup" | "touch" | "wap";
+
   /**
    * The `prompt` parameter is used to specify whether the authorization server should prompt the user for re-authentication and/or consent. It can take the following values:
    * - `none`: The authorization server must not display any authentication or consent user interface pages. If the user is not already authenticated and has not previously given consent, the authorization request will fail with an error.
@@ -65,22 +70,27 @@ export interface OpenIDAuthenticationRequestParams {
    * Multiple values can be included in a space-separated list if more than one behavior is desired (e.g., `prompt=login consent` would require the user to both re-authenticate and provide consent). The `prompt` parameter is an important part of the OpenID Connect authentication flow, as it allows clients to control the user experience and ensure that users are properly authenticated and have given consent for the requested scopes.
    */
   prompt?: "none" | "login" | "consent" | "select_account";
+
   /**
    * The `max_age` parameter specifies the maximum age of the user's authentication in seconds. If the user's authentication is older than the specified time, the authorization server should prompt the user to re-authenticate. This parameter can be used by clients to ensure that users are recently authenticated, which can be important for security-sensitive applications. For example, a client might set `max_age=3600` to require users to re-authenticate if their last authentication was more than an hour ago. The `max_age` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance security by enforcing re-authentication when necessary.
    */
   maxAge?: number;
+
   /**
    * The `ui_locales` parameter is used by clients to specify their preferred languages and scripts for the user interface of the authorization server. It is a space-separated list of BCP47 language tag values (e.g., `en`, `en-US`, `fr`, `fr-CA`, `zh-Hans`, `zh-Hant`). By including this parameter in the authorization request, clients can indicate to the authorization server which languages and scripts they prefer for displaying authentication and consent user interfaces. This allows the authorization server to provide a localized experience for users, improving usability and accessibility for a global audience. The `ui_locales` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance localization and user experience.
    */
   uiLocales?: string[];
+
   /**
    * The `id_token_hint` parameter is used to pass an existing ID token as a hint to the authorization server about the user's current authentication state. This can help streamline the authentication process by allowing the authorization server to recognize that the user is already authenticated and potentially skip additional authentication steps. The `id_token_hint` parameter is typically included in the authorization request when the client has an existing ID token for the user, such as from a previous authentication session. By providing this hint, the client can improve the user experience by reducing unnecessary prompts for authentication, while still allowing the authorization server to enforce security policies as needed. The `id_token_hint` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance user experience and streamline authentication.
    */
   idTokenHint?: string;
+
   /**
    * The `login_hint` parameter is used to provide a hint to the authorization server about the user's identifier, such as their email address or username. This can help pre-fill login forms and improve the user experience by reducing the amount of information the user needs to enter during authentication. The `login_hint` parameter is typically included in the authorization request when the client has some information about the user that can be used to assist with authentication. By providing this hint, the client can enhance the user experience while still allowing the authorization server to enforce security policies and ensure proper authentication. The `login_hint` parameter is part of the OpenID Connect specification and can be included in the authorization request to improve user experience during authentication.
    */
   loginHint?: string;
+
   /**
    * The `acr_values` parameter allows clients to specify desired Authentication Class References (ACR) values, which can be used by the authorization server to determine the appropriate level of authentication required for the request. ACR values are identifiers that represent different authentication methods or levels of assurance (e.g., password-based authentication, multi-factor authentication, biometric authentication). By including the `acr_values` parameter in the authorization request, clients can indicate their preferences for the authentication methods that should be used to authenticate the user. The authorization server can then use this information to select an appropriate authentication method based on the client's preferences and the user's available authentication options. The `acr_values` parameter is part of the OpenID Connect specification and can be included in the authorization request to enhance security by allowing clients to specify their desired authentication requirements.
    */
@@ -139,6 +149,21 @@ export interface OpenIDAuthorizationCodeModel<
     | Promise<AuthorizationCodeAccessTokenResult | undefined>
     | AuthorizationCodeAccessTokenResult
     | undefined;
+
+  getUserForAuthentication(
+    context: OpenIDAuthorizationCodeEndpointContext,
+    reqBody: AuthReqBody,
+    request: Request,
+  ): Promise<
+    | { type: "authenticated"; user: AuthorizationCodeUser }
+    | { type: "unauthenticated"; message?: string }
+    | undefined
+  >;
+
+  generateAuthorizationCode(
+    context: OpenIDAuthorizationCodeEndpointContext,
+    user: AuthorizationCodeUser,
+  ): Promise<AuthorizationCodeGeneratorResult | undefined>;
 
   /**
    * Retrieves the user information associated with the given access token.
