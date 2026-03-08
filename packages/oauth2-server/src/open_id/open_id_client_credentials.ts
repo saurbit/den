@@ -2,11 +2,12 @@ import {
   AbstractClientCredentialsGrantFlow,
   ClientCredentialsGrantFlowOptions,
 } from "../grants/client_credentials.ts";
+import { normalizeUrl } from "../utils/normalize_url.ts";
 
 /**
  * Options for configuring the client credentials grant flow.
  */
-export interface OpenIDClientCredentialsGrantFlowOptions extends ClientCredentialsGrantFlowOptions {
+export interface OpenIDClientCredentialsFlowOptions extends ClientCredentialsGrantFlowOptions {
   /**
    * The URL where the OpenID Provider's discovery document can be found.
    * This is a required field and should point to the well-known OpenID configuration endpoint
@@ -28,12 +29,12 @@ export interface OpenIDClientCredentialsGrantFlowOptions extends ClientCredentia
   openIdConfiguration?: Record<string, string | string[] | undefined>;
 }
 
-export class OpenIDClientCredentialsGrantFlow extends AbstractClientCredentialsGrantFlow {
+export class OpenIDClientCredentialsFlow extends AbstractClientCredentialsGrantFlow {
   protected discoveryUrl: string;
   protected jwksUri?: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
 
-  constructor(options: OpenIDClientCredentialsGrantFlowOptions) {
+  constructor(options: OpenIDClientCredentialsFlowOptions) {
     const { discoveryUrl, jwksUri, openIdConfiguration, ...baseOptions } = options;
     super(baseOptions);
     this.discoveryUrl = discoveryUrl;
@@ -42,12 +43,7 @@ export class OpenIDClientCredentialsGrantFlow extends AbstractClientCredentialsG
   }
 
   protected normalizeUrl(url: string, origin?: string): string {
-    if (url && /^\/(?!\/)/.test(url)) {
-      // Relative path, resolve against discovery URL's origin
-      const resolvedOrigin = origin || new URL(this.discoveryUrl).origin;
-      return `${resolvedOrigin}${url}`;
-    }
-    return url;
+    return normalizeUrl(url, origin || new URL(this.discoveryUrl).origin);
   }
 
   getDiscoveryUrl(): string {

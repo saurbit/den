@@ -89,6 +89,16 @@ export type {
 export { ClientCredentialsGrantFlow } from "./grants/client_credentials.ts";
 export type { RefreshTokenGrant } from "./grants/refresh_token.ts";
 
+export type {
+  OpenIDAuthorizationCodeAccessTokenResult,
+  OpenIDAuthorizationCodeFlowOptions,
+  OpenIDAuthorizationCodeModel,
+} from "./open_id/open_id_authorization_code.ts";
+export { OpenIDAuthorizationCodeFlow } from "./open_id/open_id_authorization_code.ts";
+export type { OpenIDClientCredentialsFlowOptions } from "./open_id/open_id_client_credentials.ts";
+export { OpenIDClientCredentialsFlow } from "./open_id/open_id_client_credentials.ts";
+export type { OpenIDFlowTokenResponse, OpenIDTokenResponseBody } from "./open_id/types.ts";
+
 export { BearerTokenType, type BearerTokenValidation } from "./token_types/bearer_token.ts";
 export type { TokenType, TokenTypeValidationResponse } from "./token_types/types.ts";
 export type {

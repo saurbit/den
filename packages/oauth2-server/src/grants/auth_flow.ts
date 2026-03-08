@@ -75,7 +75,6 @@ export interface OAuth2GrantModel<
     context: TGrantContext,
   ): Promise<string | TAccessToken | undefined> | string | TAccessToken | undefined;
 
-  // TODO: a method to generate access token from refresh token, if refresh token rotation is implemented
   generateAccessTokenFromRefreshToken?(
     context: OAuth2RefreshTokenGrantContext,
   ): Promise<string | TAccessToken | undefined> | string | TAccessToken | undefined;

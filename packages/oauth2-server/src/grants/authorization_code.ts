@@ -272,7 +272,7 @@ export interface AuthorizationCodeGrantFlowOptions<
   authorizationUrl?: string;
 }
 
-export class AuthorizationCodeGrantFlow<
+export abstract class AbstractAuthorizationCodeGrantFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
 > extends OAuth2AuthFlow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
@@ -828,7 +828,11 @@ export class AuthorizationCodeGrantFlow<
       tokenResponse,
     };
   }
+}
 
+export class AuthorizationCodeGrantFlow<
+  AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
+> extends AbstractAuthorizationCodeGrantFlow<AuthReqBody> {
   toOpenAPISecurityScheme() {
     return {
       [this.getSecuritySchemeName()]: {
