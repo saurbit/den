@@ -1,10 +1,11 @@
-import { ServerError } from "../errors.ts";
+import { InvalidRequestError, ServerError } from "../errors.ts";
 import { OAuth2RefreshTokenGrantContext } from "../grants/auth_flow.ts";
 import {
   AbstractAuthorizationCodeGrantFlow,
   AuthorizationCodeAccessTokenResult,
   AuthorizationCodeGrantContext,
   AuthorizationCodeGrantFlowOptions,
+  AuthorizationCodeInitiationResponse,
   AuthorizationCodeModel,
   AuthorizationCodeReqBody,
 } from "../grants/authorization_code.ts";
@@ -16,7 +17,7 @@ OIDC requires:
 - by library:
   - ID Token - implemented by the model's generateAccessToken() method and included in the token response - DONE
   - Discovery document (well-known OpenID configuration) - implemented by the flow and can be customized with openIdConfiguration option - DONE
-  - openid scope (profile, email, address, phone are optional but standardized) - TODO
+  - openid scope (profile, email, address, phone are optional but standardized) - enforced by the flow and included in the discovery document - DONE
 
 - by end developer:
   - UserInfo endpoint - can be implemented by the model's getUserInfo method and included in the discovery document
@@ -206,15 +207,49 @@ export class OpenIDAuthorizationCodeFlow<
     return result;
   }
 
+  protected override async getAuthorizationCodeEndpointContext(
+    request: Request,
+  ): Promise<AuthorizationCodeInitiationResponse> {
+    const query = new URL(request.url).searchParams;
+    const scope = query.get("scope") || undefined;
+    if (scope && !scope.split(" ").includes("openid")) {
+      return {
+        success: false,
+        error: new InvalidRequestError(
+          "The 'openid' scope is required for OpenID Connect authorization code flow",
+        ),
+        redirectable: false,
+      };
+    }
+    return await super.getAuthorizationCodeEndpointContext(request);
+  }
+
+  override getScopes(): Record<string, string> | undefined {
+    // Ensure that the openid scope is always included for OpenID Connect flows
+    const baseScopes = super.getScopes() || {};
+    return {
+      openid: baseScopes["openid"] || "Authenticate using OpenID Connect",
+      ...baseScopes,
+    };
+  }
+
   override async token(request: Request): Promise<OpenIDFlowTokenResponse> {
     const r = await super.token(request);
     if (r.success) {
       const tokenResponse = r.tokenResponse;
-      if (tokenResponse.id_token) {
+      if (tokenResponse.id_token && typeof tokenResponse.id_token === "string") {
+        const scope = tokenResponse.scope ? tokenResponse.scope.split(" ") : [];
+        if (!scope.includes("openid")) {
+          return {
+            success: false,
+            error: new ServerError("The 'openid' scope is required when an ID Token is returned"),
+          };
+        }
         return {
           success: true,
           tokenResponse: {
             ...tokenResponse,
+            scope: tokenResponse.scope ?? "openid",
             id_token: tokenResponse.id_token,
           },
         };
