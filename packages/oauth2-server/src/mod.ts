@@ -61,6 +61,7 @@ export type {
 } from "./grants/auth_flow.ts";
 export { OAuth2AuthFlow } from "./grants/auth_flow.ts";
 export type {
+  AbstractAuthorizationCodeGrantFlow,
   AuthorizationCodeAccessTokenResult,
   AuthorizationCodeEndpointCodeResponse,
   AuthorizationCodeEndpointContext,
@@ -80,6 +81,7 @@ export type {
 } from "./grants/authorization_code.ts";
 export { AuthorizationCodeGrantFlow } from "./grants/authorization_code.ts";
 export type {
+  AbstractClientCredentialsGrantFlow,
   ClientCredentialsGrant,
   ClientCredentialsGrantContext,
   ClientCredentialsGrantFlowOptions,
@@ -90,9 +92,15 @@ export { ClientCredentialsGrantFlow } from "./grants/client_credentials.ts";
 export type { RefreshTokenGrant } from "./grants/refresh_token.ts";
 
 export type {
+  OpenIDAuthenticationRequestParams,
   OpenIDAuthorizationCodeAccessTokenResult,
+  OpenIDAuthorizationCodeEndpointContext,
+  OpenIDAuthorizationCodeEndpointRequest,
+  OpenIDAuthorizationCodeEndpointResponse,
   OpenIDAuthorizationCodeFlowOptions,
+  OpenIDAuthorizationCodeInitiationResponse,
   OpenIDAuthorizationCodeModel,
+  OpenIDAuthorizationCodeProcessResponse,
 } from "./open_id/open_id_authorization_code.ts";
 export { OpenIDAuthorizationCodeFlow } from "./open_id/open_id_authorization_code.ts";
 export type { OpenIDClientCredentialsFlowOptions } from "./open_id/open_id_client_credentials.ts";

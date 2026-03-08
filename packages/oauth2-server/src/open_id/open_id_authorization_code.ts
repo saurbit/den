@@ -106,6 +106,10 @@ export type OpenIDAuthorizationCodeProcessResponse = AuthorizationCodeProcessRes
   OpenIDAuthorizationCodeEndpointContext
 >;
 
+export type OpenIDAuthorizationCodeEndpointResponse = AuthorizationCodeEndpointResponse<
+  OpenIDAuthorizationCodeEndpointContext
+>;
+
 export interface OpenIDAuthorizationCodeAccessTokenResult
   extends AuthorizationCodeAccessTokenResult {
   /**
@@ -440,7 +444,7 @@ export class OpenIDAuthorizationCodeFlow<
   override async handleAuthorizationEndpoint(
     request: Request,
     reqBody: AuthReqBody,
-  ): Promise<AuthorizationCodeEndpointResponse<OpenIDAuthorizationCodeEndpointContext>> {
+  ): Promise<OpenIDAuthorizationCodeEndpointResponse> {
     return await super.handleAuthorizationEndpoint(request, reqBody);
   }
 
