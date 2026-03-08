@@ -110,37 +110,44 @@ export interface AuthorizationCodeEndpointRequest {
   codeChallengeMethod?: "plain" | "S256";
 }
 
-export interface AuthorizationCodeEndpointContinueResponse
-  extends AuthorizationCodeEndpointContext {
+export interface AuthorizationCodeEndpointContinueResponse<
+  C extends AuthorizationCodeEndpointContext = AuthorizationCodeEndpointContext,
+> {
+  context: C;
   user: AuthorizationCodeUser;
   message?: string;
   error?: never;
   [key: string]: unknown;
 }
 
-export interface AuthorizationCodeEndpointCodeResponse extends AuthorizationCodeEndpointContext {
+export interface AuthorizationCodeEndpointCodeResponse<
+  C extends AuthorizationCodeEndpointContext = AuthorizationCodeEndpointContext,
+> {
+  context: C;
   user: AuthorizationCodeUser;
   code: string;
   error?: never;
   [key: string]: unknown;
 }
 
-export type AuthorizationCodeEndpointResponse =
-  | { method: "GET"; type: "initiated"; context: AuthorizationCodeEndpointContext }
+export type AuthorizationCodeEndpointResponse<
+  C extends AuthorizationCodeEndpointContext = AuthorizationCodeEndpointContext,
+> =
+  | { method: "GET"; type: "initiated"; context: C }
   | {
     method: "POST";
     type: "code";
-    authorizationCodeResponse: AuthorizationCodeEndpointCodeResponse;
+    authorizationCodeResponse: AuthorizationCodeEndpointCodeResponse<C>;
   }
   | {
     method: "POST";
     type: "continue";
-    continueResponse: AuthorizationCodeEndpointContinueResponse;
+    continueResponse: AuthorizationCodeEndpointContinueResponse<C>;
   }
   | {
     method: "POST";
     type: "unauthenticated";
-    context: AuthorizationCodeEndpointContext;
+    context: C;
     message?: string;
   }
   | {
@@ -163,11 +170,11 @@ export type AuthorizationCodeProcessResponse<
 > =
   | {
     type: "continue";
-    continueResponse: AuthorizationCodeEndpointContinueResponse;
+    continueResponse: AuthorizationCodeEndpointContinueResponse<C>;
   }
   | {
     type: "code";
-    authorizationCodeResponse: AuthorizationCodeEndpointCodeResponse;
+    authorizationCodeResponse: AuthorizationCodeEndpointCodeResponse<C>;
   }
   | {
     type: "unauthenticated";
@@ -479,7 +486,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
       return {
         type: codeResult.type,
         continueResponse: {
-          ...context.context,
+          context: context.context,
           message: codeResult.message,
           user: userResult.user,
           scope: [...scope],
@@ -490,7 +497,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
     return {
       type: codeResult.type,
       authorizationCodeResponse: {
-        ...context.context,
+        context: context.context,
         scope: [...scope],
         user: userResult.user,
         code: codeResult.code,

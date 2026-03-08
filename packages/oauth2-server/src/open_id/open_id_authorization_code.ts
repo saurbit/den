@@ -8,6 +8,7 @@ import {
   AuthorizationCodeAccessTokenResult,
   AuthorizationCodeEndpointContext,
   AuthorizationCodeEndpointRequest,
+  AuthorizationCodeEndpointResponse,
   AuthorizationCodeGrantContext,
   AuthorizationCodeGrantFlowOptions,
   AuthorizationCodeInitiationResponse,
@@ -304,10 +305,10 @@ export class OpenIDAuthorizationCodeFlow<
     const codeChallengeMethod: "S256" | "plain" | undefined = tmpCodeChallengeMethod === "S256"
       ? "S256"
       : tmpCodeChallengeMethod === "plain"
-        ? "plain"
-        : codeChallenge
-          ? "plain" // RFC 7636 §4.3 default
-          : undefined;
+      ? "plain"
+      : codeChallenge
+      ? "plain" // RFC 7636 §4.3 default
+      : undefined;
 
     const nonce = query.get("nonce") || undefined;
     const tmpPrompt = query.get("prompt") || undefined;
@@ -377,7 +378,7 @@ export class OpenIDAuthorizationCodeFlow<
       loginHint,
       acrValues: acrValues ? [...acrValues] : undefined,
       display,
-    }
+    };
 
     const client = await this.model.getClientForAuthentication(reqParams);
 
@@ -421,6 +422,26 @@ export class OpenIDAuthorizationCodeFlow<
         display,
       },
     };
+  }
+
+  override async initiateAuthorization(
+    request: Request,
+  ): Promise<OpenIDAuthorizationCodeInitiationResponse> {
+    return await super.initiateAuthorization(request);
+  }
+
+  override async processAuthorization(
+    request: Request,
+    reqBody: AuthReqBody,
+  ): Promise<OpenIDAuthorizationCodeProcessResponse> {
+    return await super.processAuthorization(request, reqBody);
+  }
+
+  override async handleAuthorizationEndpoint(
+    request: Request,
+    reqBody: AuthReqBody,
+  ): Promise<AuthorizationCodeEndpointResponse<OpenIDAuthorizationCodeEndpointContext>> {
+    return await super.handleAuthorizationEndpoint(request, reqBody);
   }
 
   override getScopes(): Record<string, string> | undefined {

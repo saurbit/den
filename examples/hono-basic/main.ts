@@ -99,7 +99,7 @@ app.post("/authorize", async (c) => {
 
     if (result.type === "code") {
       // redirect the user to the client's redirect_uri with the authorization code and state as query parameters
-      const { user, code, redirectUri, state } = result.authorizationCodeResponse;
+      const { user, code, context: { state, redirectUri } } = result.authorizationCodeResponse;
       console.log("Authorization successful:", {
         user: user?.username,
         code,
