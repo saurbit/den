@@ -22,8 +22,8 @@ import { StrategyError, StrategyInternalError, StrategyResult } from "../strateg
 import { normalizeUrl } from "../utils/normalize_url.ts";
 import { OIDCFlow } from "./types.ts";
 
-export class OIDCMultipleFlows {
-  protected flows: OIDCFlow[];
+export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
+  protected flows: TFlow[];
   protected discoveryUrl: string;
   protected openidConfiguration: Record<string, string | string[] | undefined>;
   protected tokenEndpoint = "/token";
@@ -41,7 +41,7 @@ export class OIDCMultipleFlows {
       securitySchemeName,
       description,
     }: {
-      flows: OIDCFlow[];
+      flows: TFlow[];
       discoveryUrl: string;
       jwksEndpoint?: string;
       tokenEndpoint?: string;
