@@ -15,7 +15,7 @@ export class HTTPRateLimitException extends HTTPException {
 
 export const oidcAuthorizationCodeFlow = new HonoOIDCAuthorizationCodeFlow({
   discoveryUrl: "http://localhost/.well-known/openid-configuration",
-  jwksUri: "/jwks",
+  jwksEndpoint: "/jwks",
   parseAuthorizationEndpointBody: async (context) => {
     const formData = await context.req.formData();
     const username = formData.get("username");

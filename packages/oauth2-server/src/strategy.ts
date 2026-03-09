@@ -53,6 +53,19 @@ export class StrategyInternalError extends StrategyError {
 }
 
 /**
+ * Returned when multiple strategy errors occur, such as when trying multiple flows in OIDCMultipleFlows.
+ * The individual errors can be accessed via the `errors` property.
+ */
+export class StrategyErrors extends StrategyError {
+  readonly status = 500 as const;
+  readonly errors: StrategyError[];
+  constructor(errors: StrategyError[]) {
+    super(`Multiple strategy errors: ${errors.map((e) => e.message).join("; ")}`);
+    this.errors = errors;
+  }
+}
+
+/**
  * User extensible types user credentials.
  */
 // deno-lint-ignore no-empty-interface

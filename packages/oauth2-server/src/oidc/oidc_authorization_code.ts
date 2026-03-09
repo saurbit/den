@@ -17,7 +17,7 @@ import {
 } from "../grants/authorization_code.ts";
 import { OAuth2Client } from "../types.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
-import { OIDCUserInfo } from "./types.ts";
+import { OIDCFlow, OIDCFlowExtendedOptions, OIDCUserInfo } from "./types.ts";
 
 /*---
 OIDC requires:
@@ -177,41 +177,28 @@ export interface OIDCAuthorizationCodeModel<
  */
 export interface OIDCAuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends AuthorizationCodeFlowOptions<AuthReqBody> {
+> extends AuthorizationCodeFlowOptions<AuthReqBody>, OIDCFlowExtendedOptions {
   model: OIDCAuthorizationCodeModel<AuthReqBody>;
-  /**
-   * The URL where the OpenID Provider's discovery document can be found.
-   * This is a required field and should point to the well-known OpenID configuration endpoint
-   * (e.g., https://example.com/.well-known/openid-configuration).
-   */
-  discoveryUrl: string;
   /**
    * The URL where the OpenID Provider's JSON Web Key Set (JWKS) can be found.
    * This is used for validating tokens issued by the provider. If not provided, it will be derived from the discovery document.
    * It can be an absolute URL or a relative path (e.g., /jwks) which will be resolved against the discovery URL's origin.
    */
-  jwksUri: string;
-  /**
-   * Additional OpenID configuration parameters to include in the discovery document.
-   * This allows for customization of the discovery document beyond the standard fields.
-   * The provided configuration will be merged with the default values derived from the flow's settings.
-   * This is useful for adding custom fields or overriding defaults when necessary.
-   */
-  openIdConfiguration?: Record<string, string | string[] | undefined>;
+  jwksEndpoint: string;
 }
 
 export class OIDCAuthorizationCodeFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends AbstractAuthorizationCodeFlow<AuthReqBody> {
+> extends AbstractAuthorizationCodeFlow<AuthReqBody> implements OIDCFlow {
   protected discoveryUrl: string;
-  protected jwksUri: string;
+  protected jwksEndpoint: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
 
   constructor(options: OIDCAuthorizationCodeFlowOptions) {
-    const { discoveryUrl, jwksUri, openIdConfiguration, ...baseOptions } = options;
+    const { discoveryUrl, jwksEndpoint, openIdConfiguration, ...baseOptions } = options;
     super(baseOptions);
     this.discoveryUrl = discoveryUrl;
-    this.jwksUri = jwksUri;
+    this.jwksEndpoint = jwksEndpoint;
     this.openIdConfiguration = openIdConfiguration;
   }
 
@@ -224,7 +211,7 @@ export class OIDCAuthorizationCodeFlow<
   }
 
   getJwksUri(): string {
-    return this.jwksUri;
+    return this.jwksEndpoint;
   }
 
   getOpenIdConfiguration(): Record<string, string | string[] | undefined> | undefined {
@@ -256,9 +243,9 @@ export class OIDCAuthorizationCodeFlow<
     const host = new URL(this.getDiscoveryUrl()).origin;
 
     // Format jwks_uri if it's a relative path
-    let jwksUri = this.getJwksUri();
-    if (jwksUri) {
-      jwksUri = this.normalizeUrl(jwksUri, host);
+    let jwksEndpoint = this.getJwksUri();
+    if (jwksEndpoint) {
+      jwksEndpoint = this.normalizeUrl(jwksEndpoint, host);
     }
     // Format token endpoint if it's a relative path
     let tokenEndpoint = this.getTokenUrl();
@@ -275,7 +262,7 @@ export class OIDCAuthorizationCodeFlow<
       authorization_endpoint: authorizationEndpoint,
       token_endpoint: tokenEndpoint,
       userinfo_endpoint: undefined, // This can be added to openIdConfiguration if needed
-      jwks_uri: jwksUri,
+      jwks_uri: jwksEndpoint,
       registration_endpoint: undefined,
       claims_supported: ["aud", "exp", "iat", "iss", "sub"],
       grant_types_supported: [this.grantType],

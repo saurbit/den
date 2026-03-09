@@ -104,7 +104,8 @@ export type {
 export { OIDCAuthorizationCodeFlow } from "./oidc/oidc_authorization_code.ts";
 export type { OIDCClientCredentialsFlowOptions } from "./oidc/oidc_client_credentials.ts";
 export { OIDCClientCredentialsFlow } from "./oidc/oidc_client_credentials.ts";
-export type { OIDCUserInfo } from "./oidc/types.ts";
+export { OIDCMultipleFlows } from "./oidc/oidc_multiple_flows.ts";
+export type { OIDCFlow, OIDCFlowExtendedOptions, OIDCUserInfo } from "./oidc/types.ts";
 
 export { BearerTokenType, type BearerTokenValidation } from "./token_types/bearer_token.ts";
 export type { TokenType, TokenTypeValidationResponse } from "./token_types/types.ts";

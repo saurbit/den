@@ -3,42 +3,25 @@ import {
   ClientCredentialsFlowOptions,
 } from "../grants/client_credentials.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
+import { OIDCFlow, OIDCFlowExtendedOptions } from "./types.ts";
 
 /**
  * Options for configuring the client credentials grant flow.
  */
-export interface OIDCClientCredentialsFlowOptions extends ClientCredentialsFlowOptions {
-  /**
-   * The URL where the OpenID Provider's discovery document can be found.
-   * This is a required field and should point to the well-known OpenID configuration endpoint
-   * (e.g., https://example.com/.well-known/openid-configuration).
-   */
-  discoveryUrl: string;
-  /**
-   * The URL where the OpenID Provider's JSON Web Key Set (JWKS) can be found.
-   * This is used for validating tokens issued by the provider. If not provided, it will be derived from the discovery document.
-   * It can be an absolute URL or a relative path (e.g., /jwks) which will be resolved against the discovery URL's origin.
-   */
-  jwksUri?: string;
-  /**
-   * Additional OpenID configuration parameters to include in the discovery document.
-   * This allows for customization of the discovery document beyond the standard fields.
-   * The provided configuration will be merged with the default values derived from the flow's settings.
-   * This is useful for adding custom fields or overriding defaults when necessary.
-   */
-  openIdConfiguration?: Record<string, string | string[] | undefined>;
+export interface OIDCClientCredentialsFlowOptions
+  extends ClientCredentialsFlowOptions, OIDCFlowExtendedOptions {
 }
 
-export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow {
+export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow implements OIDCFlow {
   protected discoveryUrl: string;
-  protected jwksUri?: string;
+  protected jwksEndpoint?: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
 
   constructor(options: OIDCClientCredentialsFlowOptions) {
-    const { discoveryUrl, jwksUri, openIdConfiguration, ...baseOptions } = options;
+    const { discoveryUrl, jwksEndpoint, openIdConfiguration, ...baseOptions } = options;
     super(baseOptions);
     this.discoveryUrl = discoveryUrl;
-    this.jwksUri = jwksUri;
+    this.jwksEndpoint = jwksEndpoint;
     this.openIdConfiguration = openIdConfiguration;
   }
 
@@ -51,7 +34,7 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow {
   }
 
   getJwksUri(): string | undefined {
-    return this.jwksUri;
+    return this.jwksEndpoint;
   }
 
   getOpenIdConfiguration(): Record<string, string | string[] | undefined> | undefined {
@@ -75,9 +58,9 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow {
     const host = new URL(this.getDiscoveryUrl()).origin;
 
     // Format jwks_uri if it's a relative path
-    let jwksUri = this.getJwksUri();
-    if (jwksUri) {
-      jwksUri = this.normalizeUrl(jwksUri, host);
+    let jwksEndpoint = this.getJwksUri();
+    if (jwksEndpoint) {
+      jwksEndpoint = this.normalizeUrl(jwksEndpoint, host);
     }
     // Format token endpoint if it's a relative path
     let tokenEndpoint = this.getTokenUrl();
@@ -89,7 +72,7 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow {
       issuer: host,
       token_endpoint: tokenEndpoint,
       userinfo_endpoint: undefined, // irrelevant and typically not used in the client credentials flow
-      jwks_uri: jwksUri,
+      jwks_uri: jwksEndpoint,
       registration_endpoint: undefined,
       claims_supported: ["aud", "exp", "iat", "iss", "sub"],
       grant_types_supported: [this.grantType],

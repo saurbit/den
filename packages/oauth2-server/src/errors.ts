@@ -18,6 +18,22 @@ export class OAuth2Error extends Error {
   }
 }
 
+/**
+ * An error that encapsulates multiple OAuth2Error instances, such as when trying multiple flows in OIDCMultipleFlows.
+ * The individual errors can be accessed via the `errors` property.
+ */
+export class OAuth2Errors extends OAuth2Error {
+  readonly errors: OAuth2Error[];
+  constructor(errors: OAuth2Error[]) {
+    super(
+      `Multiple OAuth2 errors: ${errors.map((e) => e.message).join("; ")}`,
+      500,
+      "server_error",
+    );
+    this.errors = errors;
+  }
+}
+
 /** The request is missing a required parameter or is otherwise malformed. */
 export class InvalidRequestError extends OAuth2Error {
   constructor(message = "Invalid request") {
