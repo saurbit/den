@@ -10,11 +10,11 @@ import {
 import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client } from "../types.ts";
 import {
-  OAuth2AuthFlow,
-  type OAuth2AuthFlowOptions,
-  type OAuth2AuthFlowTokenResponse,
+  OAuth2Flow,
+  type OAuth2FlowOptions,
+  type OAuth2FlowTokenResponse,
   type OAuth2GrantModel,
-} from "./auth_flow.ts";
+} from "./flow.ts";
 
 /**
  * Handles the Client Credentials grant type.
@@ -59,16 +59,16 @@ export interface ClientCredentialsModel
 /**
  * Options for configuring the client credentials grant flow.
  */
-export interface ClientCredentialsGrantFlowOptions extends OAuth2AuthFlowOptions {
+export interface ClientCredentialsFlowOptions extends OAuth2FlowOptions {
   model: ClientCredentialsModel;
 }
 
-export abstract class AbstractClientCredentialsGrantFlow extends OAuth2AuthFlow
+export abstract class AbstractClientCredentialsFlow extends OAuth2Flow
   implements ClientCredentialsGrant {
   readonly grantType = "client_credentials" as const;
   protected readonly model: ClientCredentialsModel;
 
-  constructor(options: ClientCredentialsGrantFlowOptions) {
+  constructor(options: ClientCredentialsFlowOptions) {
     const { model, ...flowOptions } = { ...options };
     super(flowOptions);
     this.model = model;
@@ -80,7 +80,7 @@ export abstract class AbstractClientCredentialsGrantFlow extends OAuth2AuthFlow
    * Returns an appropriate error response if validation fails.
    * @param request The incoming HTTP request.
    */
-  async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
+  async token(request: Request): Promise<OAuth2FlowTokenResponse> {
     const req = request.clone();
     if (req.method !== "POST") {
       return { success: false, error: new InvalidRequestError("Method Not Allowed") };
@@ -221,7 +221,7 @@ export abstract class AbstractClientCredentialsGrantFlow extends OAuth2AuthFlow
   }
 }
 
-export class ClientCredentialsGrantFlow extends AbstractClientCredentialsGrantFlow {
+export class ClientCredentialsFlow extends AbstractClientCredentialsFlow {
   toOpenAPISecurityScheme() {
     return {
       [this.getSecuritySchemeName()]: {

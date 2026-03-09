@@ -3,16 +3,16 @@
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
-  AuthorizationCodeGrantFlow,
-  AuthorizationCodeGrantFlowOptions,
+  AuthorizationCodeFlow,
+  AuthorizationCodeFlowOptions,
   AuthorizationCodeInitiationResponse,
   AuthorizationCodeProcessResponse,
   AuthorizationCodeReqBody,
   evaluateStrategy,
   InvalidRequestError,
-  OAuth2AuthFlowTokenResponse,
-  OpenIDAuthorizationCodeFlowOptions,
-  OpenIDAuthorizationCodeInitiationResponse,
+  OAuth2FlowTokenResponse,
+  OIDCAuthorizationCodeFlowOptions,
+  OIDCAuthorizationCodeInitiationResponse,
   StrategyInsufficientScopeError,
   StrategyResult,
   StrategyVerifyTokenFunction,
@@ -23,16 +23,16 @@ import {
   OAuth2ServerEnv,
 } from "./types.ts";
 import { AuthorizationCodeEndpointResponse } from "@saurbit/oauth2-server";
-import { OpenIDAuthorizationCodeFlow } from "@saurbit/oauth2-server";
-import { OpenIDAuthorizationCodeProcessResponse } from "@saurbit/oauth2-server";
-import { OpenIDAuthorizationCodeEndpointResponse } from "@saurbit/oauth2-server";
+import { OIDCAuthorizationCodeFlow } from "@saurbit/oauth2-server";
+import { OIDCAuthorizationCodeProcessResponse } from "@saurbit/oauth2-server";
+import { OIDCAuthorizationCodeEndpointResponse } from "@saurbit/oauth2-server";
 
 //#region Types and Interfaces
 
 export interface HonoAuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
   E extends Env = Env,
-> extends Omit<AuthorizationCodeGrantFlowOptions<AuthReqBody>, "strategyOptions"> {
+> extends Omit<AuthorizationCodeFlowOptions<AuthReqBody>, "strategyOptions"> {
   strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
   parseAuthorizationEndpointBody: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqBody>;
 }
@@ -44,7 +44,7 @@ export interface HonoAuthorizationCodeFlowOptions<
 export interface HonoOIDCAuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
   E extends Env = Env,
-> extends Omit<OpenIDAuthorizationCodeFlowOptions<AuthReqBody>, "strategyOptions"> {
+> extends Omit<OIDCAuthorizationCodeFlowOptions<AuthReqBody>, "strategyOptions"> {
   strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
   parseAuthorizationEndpointBody: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqBody>;
 }
@@ -53,10 +53,10 @@ export interface HonoOIDCAuthorizationCodeFlowOptions<
 
 //#region Classes
 
-export class HonoAuthorizationCodeGrantFlow<
+export class HonoAuthorizationCodeFlow<
   E extends Env = Env,
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends AuthorizationCodeGrantFlow<AuthReqBody> {
+> extends AuthorizationCodeFlow<AuthReqBody> {
   readonly #verifyTokenHandler: (
     context: Context<E & OAuth2ServerEnv>,
   ) => Promise<StrategyResult>;
@@ -130,7 +130,7 @@ export class HonoAuthorizationCodeGrantFlow<
     return await this.#verifyTokenHandler(context);
   }
 
-  async tokenFromHono(context: Context): Promise<OAuth2AuthFlowTokenResponse> {
+  async tokenFromHono(context: Context): Promise<OAuth2FlowTokenResponse> {
     return await this.token(context.req.raw);
   }
 
@@ -220,7 +220,7 @@ export class HonoAuthorizationCodeGrantFlow<
 export class HonoOIDCAuthorizationCodeFlow<
   E extends Env = Env,
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends OpenIDAuthorizationCodeFlow<AuthReqBody> {
+> extends OIDCAuthorizationCodeFlow<AuthReqBody> {
   readonly #verifyTokenHandler: (
     context: Context<E & OAuth2ServerEnv>,
   ) => Promise<StrategyResult>;
@@ -294,7 +294,7 @@ export class HonoOIDCAuthorizationCodeFlow<
     return await this.#verifyTokenHandler(context);
   }
 
-  async tokenFromHono(context: Context): Promise<OAuth2AuthFlowTokenResponse> {
+  async tokenFromHono(context: Context): Promise<OAuth2FlowTokenResponse> {
     return await this.token(context.req.raw);
   }
 
@@ -310,7 +310,7 @@ export class HonoOIDCAuthorizationCodeFlow<
    */
   async initiateAuthorizationFromHono(
     context: Context,
-  ): Promise<OpenIDAuthorizationCodeInitiationResponse> {
+  ): Promise<OIDCAuthorizationCodeInitiationResponse> {
     return await this.initiateAuthorization(context.req.raw);
   }
 
@@ -322,7 +322,7 @@ export class HonoOIDCAuthorizationCodeFlow<
    */
   async processAuthorizationFromHono(
     context: Context,
-  ): Promise<OpenIDAuthorizationCodeProcessResponse> {
+  ): Promise<OIDCAuthorizationCodeProcessResponse> {
     return await this.processAuthorization(
       context.req.raw.clone(),
       await this.#parseAuthorizationEndpointBody(context),
@@ -337,7 +337,7 @@ export class HonoOIDCAuthorizationCodeFlow<
    */
   async handleAuthorizationEndpointFromHono(
     context: Context,
-  ): Promise<OpenIDAuthorizationCodeEndpointResponse> {
+  ): Promise<OIDCAuthorizationCodeEndpointResponse> {
     if (context.req.method === "GET") {
       // In a real implementation, you would render a login page
       // or consent page here for the user

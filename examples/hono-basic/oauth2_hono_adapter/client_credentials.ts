@@ -1,10 +1,10 @@
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
-  ClientCredentialsGrantFlow,
-  ClientCredentialsGrantFlowOptions,
+  ClientCredentialsFlow,
+  ClientCredentialsFlowOptions,
   evaluateStrategy,
-  OAuth2AuthFlowTokenResponse,
+  OAuth2FlowTokenResponse,
   StrategyInsufficientScopeError,
   StrategyResult,
   StrategyVerifyTokenFunction,
@@ -16,13 +16,13 @@ import {
 } from "./types.ts";
 
 export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
-  extends Omit<ClientCredentialsGrantFlowOptions, "strategyOptions"> {
+  extends Omit<ClientCredentialsFlowOptions, "strategyOptions"> {
   strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
 }
 
-export class HonoClientCredentialsGrantFlow<
+export class HonoClientCredentialsFlow<
   E extends Env = Env,
-> extends ClientCredentialsGrantFlow {
+> extends ClientCredentialsFlow {
   readonly #verifyTokenHandler: (
     context: Context<E & OAuth2ServerEnv>,
   ) => Promise<StrategyResult>;
@@ -90,7 +90,7 @@ export class HonoClientCredentialsGrantFlow<
     return await this.#verifyTokenHandler(context);
   }
 
-  async tokenFromHono(context: Context): Promise<OAuth2AuthFlowTokenResponse> {
+  async tokenFromHono(context: Context): Promise<OAuth2FlowTokenResponse> {
     return await this.token(context.req.raw);
   }
 

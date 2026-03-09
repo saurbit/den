@@ -14,13 +14,13 @@ import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import type { OAuth2Client, OAuth2TokenResponseBody } from "../types.ts";
 import {
   type OAuth2AccessTokenResult,
-  OAuth2AuthFlow,
-  type OAuth2AuthFlowOptions,
-  type OAuth2AuthFlowTokenResponse,
+  OAuth2Flow,
+  type OAuth2FlowOptions,
+  type OAuth2FlowTokenResponse,
   type OAuth2GrantModel,
   OAuth2RefreshTokenGrantContext,
   OAuth2RefreshTokenRequest,
-} from "./auth_flow.ts";
+} from "./flow.ts";
 
 export interface AuthorizationCodeUser {
   [key: string]: unknown;
@@ -264,22 +264,22 @@ export interface AuthorizationCodeModel<
 /**
  * Options for configuring the authorization code grant flow.
  */
-export interface AuthorizationCodeGrantFlowOptions<
+export interface AuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends OAuth2AuthFlowOptions {
+> extends OAuth2FlowOptions {
   model: AuthorizationCodeModel<AuthReqBody>;
   authorizationUrl?: string;
 }
 
-export abstract class AbstractAuthorizationCodeGrantFlow<
+export abstract class AbstractAuthorizationCodeFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends OAuth2AuthFlow implements AuthorizationCodeGrant {
+> extends OAuth2Flow implements AuthorizationCodeGrant {
   readonly grantType = "authorization_code" as const;
   protected readonly model: AuthorizationCodeModel<AuthReqBody>;
 
   protected authorizationUrl: string = "/authorize";
 
-  constructor(options: AuthorizationCodeGrantFlowOptions<AuthReqBody>) {
+  constructor(options: AuthorizationCodeFlowOptions<AuthReqBody>) {
     const { model, authorizationUrl, ...flowOptions } = { ...options };
     super(flowOptions);
     this.model = model;
@@ -768,7 +768,7 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
    * Returns an appropriate error response if validation fails.
    * @param request The incoming HTTP request.
    */
-  async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
+  async token(request: Request): Promise<OAuth2FlowTokenResponse> {
     const initiationResult = await this.initiateToken(request);
 
     if (!initiationResult.success) {
@@ -827,9 +827,9 @@ export abstract class AbstractAuthorizationCodeGrantFlow<
   }
 }
 
-export class AuthorizationCodeGrantFlow<
+export class AuthorizationCodeFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends AbstractAuthorizationCodeGrantFlow<AuthReqBody> {
+> extends AbstractAuthorizationCodeFlow<AuthReqBody> {
   toOpenAPISecurityScheme() {
     return {
       [this.getSecuritySchemeName()]: {

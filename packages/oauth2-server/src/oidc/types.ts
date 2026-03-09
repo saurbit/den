@@ -1,4 +1,4 @@
-export interface OpenIDUserInfo {
+export interface OIDCUserInfo {
   sub: string;
   [claim: string]: unknown;
 }

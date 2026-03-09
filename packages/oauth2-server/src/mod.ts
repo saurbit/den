@@ -53,25 +53,25 @@ export type {
 
 export type {
   OAuth2AccessTokenResult,
-  OAuth2AuthFlowOptions,
-  OAuth2AuthFlowTokenResponse,
+  OAuth2FlowOptions,
+  OAuth2FlowTokenResponse,
   OAuth2GrantModel,
   OAuth2RefreshTokenGrantContext,
   OAuth2RefreshTokenRequest,
-} from "./grants/auth_flow.ts";
-export { OAuth2AuthFlow } from "./grants/auth_flow.ts";
+} from "./grants/flow.ts";
+export { OAuth2Flow } from "./grants/flow.ts";
 export type {
-  AbstractAuthorizationCodeGrantFlow,
+  AbstractAuthorizationCodeFlow,
   AuthorizationCodeAccessTokenResult,
   AuthorizationCodeEndpointCodeResponse,
   AuthorizationCodeEndpointContext,
   AuthorizationCodeEndpointContinueResponse,
   AuthorizationCodeEndpointRequest,
   AuthorizationCodeEndpointResponse,
+  AuthorizationCodeFlowOptions,
   AuthorizationCodeGeneratorResult,
   AuthorizationCodeGrant,
   AuthorizationCodeGrantContext,
-  AuthorizationCodeGrantFlowOptions,
   AuthorizationCodeInitiationResponse,
   AuthorizationCodeModel,
   AuthorizationCodeProcessResponse,
@@ -79,33 +79,32 @@ export type {
   AuthorizationCodeTokenRequest,
   AuthorizationCodeUser,
 } from "./grants/authorization_code.ts";
-export { AuthorizationCodeGrantFlow } from "./grants/authorization_code.ts";
+export { AuthorizationCodeFlow } from "./grants/authorization_code.ts";
 export type {
-  AbstractClientCredentialsGrantFlow,
+  AbstractClientCredentialsFlow,
+  ClientCredentialsFlowOptions,
   ClientCredentialsGrant,
   ClientCredentialsGrantContext,
-  ClientCredentialsGrantFlowOptions,
   ClientCredentialsModel,
   ClientCredentialsTokenRequest,
 } from "./grants/client_credentials.ts";
-export { ClientCredentialsGrantFlow } from "./grants/client_credentials.ts";
-export type { RefreshTokenGrant } from "./grants/refresh_token.ts";
+export { ClientCredentialsFlow } from "./grants/client_credentials.ts";
 
 export type {
-  OpenIDAuthenticationRequestParams,
-  OpenIDAuthorizationCodeAccessTokenResult,
-  OpenIDAuthorizationCodeEndpointContext,
-  OpenIDAuthorizationCodeEndpointRequest,
-  OpenIDAuthorizationCodeEndpointResponse,
-  OpenIDAuthorizationCodeFlowOptions,
-  OpenIDAuthorizationCodeInitiationResponse,
-  OpenIDAuthorizationCodeModel,
-  OpenIDAuthorizationCodeProcessResponse,
-} from "./open_id/open_id_authorization_code.ts";
-export { OpenIDAuthorizationCodeFlow } from "./open_id/open_id_authorization_code.ts";
-export type { OpenIDClientCredentialsFlowOptions } from "./open_id/open_id_client_credentials.ts";
-export { OpenIDClientCredentialsFlow } from "./open_id/open_id_client_credentials.ts";
-export type { OpenIDUserInfo } from "./open_id/types.ts";
+  OIDCAuthenticationRequestParams,
+  OIDCAuthorizationCodeAccessTokenResult,
+  OIDCAuthorizationCodeEndpointContext,
+  OIDCAuthorizationCodeEndpointRequest,
+  OIDCAuthorizationCodeEndpointResponse,
+  OIDCAuthorizationCodeFlowOptions,
+  OIDCAuthorizationCodeInitiationResponse,
+  OIDCAuthorizationCodeModel,
+  OIDCAuthorizationCodeProcessResponse,
+} from "./oidc/oidc_authorization_code.ts";
+export { OIDCAuthorizationCodeFlow } from "./oidc/oidc_authorization_code.ts";
+export type { OIDCClientCredentialsFlowOptions } from "./oidc/oidc_client_credentials.ts";
+export { OIDCClientCredentialsFlow } from "./oidc/oidc_client_credentials.ts";
+export type { OIDCUserInfo } from "./oidc/types.ts";
 
 export { BearerTokenType, type BearerTokenValidation } from "./token_types/bearer_token.ts";
 export type { TokenType, TokenTypeValidationResponse } from "./token_types/types.ts";

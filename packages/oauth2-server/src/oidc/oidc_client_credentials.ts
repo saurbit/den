@@ -1,13 +1,13 @@
 import {
-  AbstractClientCredentialsGrantFlow,
-  ClientCredentialsGrantFlowOptions,
+  AbstractClientCredentialsFlow,
+  ClientCredentialsFlowOptions,
 } from "../grants/client_credentials.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
 
 /**
  * Options for configuring the client credentials grant flow.
  */
-export interface OpenIDClientCredentialsFlowOptions extends ClientCredentialsGrantFlowOptions {
+export interface OIDCClientCredentialsFlowOptions extends ClientCredentialsFlowOptions {
   /**
    * The URL where the OpenID Provider's discovery document can be found.
    * This is a required field and should point to the well-known OpenID configuration endpoint
@@ -29,12 +29,12 @@ export interface OpenIDClientCredentialsFlowOptions extends ClientCredentialsGra
   openIdConfiguration?: Record<string, string | string[] | undefined>;
 }
 
-export class OpenIDClientCredentialsFlow extends AbstractClientCredentialsGrantFlow {
+export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow {
   protected discoveryUrl: string;
   protected jwksUri?: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
 
-  constructor(options: OpenIDClientCredentialsFlowOptions) {
+  constructor(options: OIDCClientCredentialsFlowOptions) {
     const { discoveryUrl, jwksUri, openIdConfiguration, ...baseOptions } = options;
     super(baseOptions);
     this.discoveryUrl = discoveryUrl;

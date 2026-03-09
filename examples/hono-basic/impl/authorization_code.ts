@@ -2,7 +2,7 @@
 
 import { StrategyInternalError } from "@saurbit/oauth2-server";
 
-import { BearerTokenType, HonoAuthorizationCodeGrantFlow } from "../oauth2_hono_adapter/mod.ts";
+import { BearerTokenType, HonoAuthorizationCodeFlow } from "../oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";
 import { html } from "hono/html";
 import { verifyTokenFunction } from "./common.ts";
@@ -13,7 +13,7 @@ export class HTTPRateLimitException extends HTTPException {
   }
 }
 
-export const authorizationCodeFlow = new HonoAuthorizationCodeGrantFlow({
+export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
   parseAuthorizationEndpointBody: async (context) => {
     const formData = await context.req.formData();
     const username = formData.get("username");

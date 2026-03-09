@@ -15,11 +15,11 @@ import {
 import { OAuth2Client, OAuth2TokenResponseBody } from "../types.ts";
 import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 
-export type OAuth2AuthFlowTokenResponse =
+export type OAuth2FlowTokenResponse =
   | { success: true; tokenResponse: OAuth2TokenResponseBody; grantType: string }
   | { success: false; error: OAuth2Error };
 
-export interface OAuth2AuthFlowOptions {
+export interface OAuth2FlowOptions {
   /*
     logger?: ILogger;
     jwksOptions?: OAuth2JwksOptions;
@@ -80,7 +80,7 @@ export interface OAuth2GrantModel<
   ): Promise<string | TAccessToken | undefined> | string | TAccessToken | undefined;
 }
 
-export abstract class OAuth2AuthFlow {
+export abstract class OAuth2Flow {
   abstract readonly grantType: string;
 
   readonly strategyOptions: Omit<StrategyOptions, "tokenType">;
@@ -151,7 +151,7 @@ export abstract class OAuth2AuthFlow {
     protected jwksRotator?: JwksRotator;
     */
 
-  constructor(options?: OAuth2AuthFlowOptions) {
+  constructor(options?: OAuth2FlowOptions) {
     this._tokenType = new BearerTokenType();
     if (options?.securitySchemeName) {
       this.securitySchemeName = options?.securitySchemeName;
@@ -495,7 +495,7 @@ export abstract class OAuth2AuthFlow {
    * @param request The incoming HTTP request.
    * @returns The token response, which can be either a success with the token response body or a failure with an error.
    */
-  abstract token(request: Request): Promise<OAuth2AuthFlowTokenResponse>;
+  abstract token(request: Request): Promise<OAuth2FlowTokenResponse>;
 
   /**
    * Convert the grant flow to an OpenAPI security scheme object.

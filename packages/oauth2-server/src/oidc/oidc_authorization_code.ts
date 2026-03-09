@@ -1,17 +1,14 @@
 import { InvalidRequestError, ServerError, UnsupportedResponseTypeError } from "../errors.ts";
+import { OAuth2FlowTokenResponse, OAuth2RefreshTokenGrantContext } from "../grants/flow.ts";
 import {
-  OAuth2AuthFlowTokenResponse,
-  OAuth2RefreshTokenGrantContext,
-} from "../grants/auth_flow.ts";
-import {
-  AbstractAuthorizationCodeGrantFlow,
+  AbstractAuthorizationCodeFlow,
   AuthorizationCodeAccessTokenResult,
   AuthorizationCodeEndpointContext,
   AuthorizationCodeEndpointRequest,
   AuthorizationCodeEndpointResponse,
+  AuthorizationCodeFlowOptions,
   AuthorizationCodeGeneratorResult,
   AuthorizationCodeGrantContext,
-  AuthorizationCodeGrantFlowOptions,
   AuthorizationCodeInitiationResponse,
   AuthorizationCodeModel,
   AuthorizationCodeProcessResponse,
@@ -20,7 +17,7 @@ import {
 } from "../grants/authorization_code.ts";
 import { OAuth2Client } from "../types.ts";
 import { normalizeUrl } from "../utils/normalize_url.ts";
-import { OpenIDUserInfo } from "./types.ts";
+import { OIDCUserInfo } from "./types.ts";
 
 /*---
 OIDC requires:
@@ -44,7 +41,7 @@ function isDisplay(value?: string | null): value is "page" | "popup" | "touch" |
   return value === "page" || value === "popup" || value === "touch" || value === "wap";
 }
 
-export interface OpenIDAuthenticationRequestParams {
+export interface OIDCAuthenticationRequestParams {
   /**
    * The `nonce` parameter is a string value used to associate a client session with an ID token, and to mitigate replay attacks.
    * It is included in the authorization request and should be returned in the ID token.
@@ -97,31 +94,30 @@ export interface OpenIDAuthenticationRequestParams {
   acrValues?: string[];
 }
 
-export interface OpenIDAuthorizationCodeEndpointRequest
-  extends AuthorizationCodeEndpointRequest, OpenIDAuthenticationRequestParams {
+export interface OIDCAuthorizationCodeEndpointRequest
+  extends AuthorizationCodeEndpointRequest, OIDCAuthenticationRequestParams {
 }
 
 /**
  * Validation context for OpenID Connect authorization code flow.
  * @see https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
  */
-export interface OpenIDAuthorizationCodeEndpointContext
-  extends AuthorizationCodeEndpointContext, OpenIDAuthenticationRequestParams {
+export interface OIDCAuthorizationCodeEndpointContext
+  extends AuthorizationCodeEndpointContext, OIDCAuthenticationRequestParams {
 }
 
-export type OpenIDAuthorizationCodeInitiationResponse = AuthorizationCodeInitiationResponse<
-  OpenIDAuthorizationCodeEndpointContext
+export type OIDCAuthorizationCodeInitiationResponse = AuthorizationCodeInitiationResponse<
+  OIDCAuthorizationCodeEndpointContext
 >;
-export type OpenIDAuthorizationCodeProcessResponse = AuthorizationCodeProcessResponse<
-  OpenIDAuthorizationCodeEndpointContext
->;
-
-export type OpenIDAuthorizationCodeEndpointResponse = AuthorizationCodeEndpointResponse<
-  OpenIDAuthorizationCodeEndpointContext
+export type OIDCAuthorizationCodeProcessResponse = AuthorizationCodeProcessResponse<
+  OIDCAuthorizationCodeEndpointContext
 >;
 
-export interface OpenIDAuthorizationCodeAccessTokenResult
-  extends AuthorizationCodeAccessTokenResult {
+export type OIDCAuthorizationCodeEndpointResponse = AuthorizationCodeEndpointResponse<
+  OIDCAuthorizationCodeEndpointContext
+>;
+
+export interface OIDCAuthorizationCodeAccessTokenResult extends AuthorizationCodeAccessTokenResult {
   /**
    * For OpenID Connect, an ID token can also be returned from the token endpoint when exchanging the authorization code for tokens, and it should be included in the access token result so that it can be returned to the client in the token response.
    * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
@@ -129,18 +125,18 @@ export interface OpenIDAuthorizationCodeAccessTokenResult
   idToken: string;
 }
 
-export interface OpenIDAuthorizationCodeModel<
+export interface OIDCAuthorizationCodeModel<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
 > extends AuthorizationCodeModel<AuthReqBody> {
   getClientForAuthentication(
-    authRequest: OpenIDAuthorizationCodeEndpointRequest,
+    authRequest: OIDCAuthorizationCodeEndpointRequest,
   ): Promise<OAuth2Client | undefined>;
 
   generateAccessToken(
     context: AuthorizationCodeGrantContext,
   ):
-    | Promise<OpenIDAuthorizationCodeAccessTokenResult | undefined>
-    | OpenIDAuthorizationCodeAccessTokenResult
+    | Promise<OIDCAuthorizationCodeAccessTokenResult | undefined>
+    | OIDCAuthorizationCodeAccessTokenResult
     | undefined;
 
   generateAccessTokenFromRefreshToken?(
@@ -151,7 +147,7 @@ export interface OpenIDAuthorizationCodeModel<
     | undefined;
 
   getUserForAuthentication(
-    context: OpenIDAuthorizationCodeEndpointContext,
+    context: OIDCAuthorizationCodeEndpointContext,
     reqBody: AuthReqBody,
     request: Request,
   ): Promise<
@@ -161,7 +157,7 @@ export interface OpenIDAuthorizationCodeModel<
   >;
 
   generateAuthorizationCode(
-    context: OpenIDAuthorizationCodeEndpointContext,
+    context: OIDCAuthorizationCodeEndpointContext,
     user: AuthorizationCodeUser,
   ): Promise<AuthorizationCodeGeneratorResult | undefined>;
 
@@ -173,16 +169,16 @@ export interface OpenIDAuthorizationCodeModel<
    */
   getUserInfo?(
     accessToken: string,
-  ): Promise<OpenIDUserInfo | undefined> | OpenIDUserInfo | undefined;
+  ): Promise<OIDCUserInfo | undefined> | OIDCUserInfo | undefined;
 }
 
 /**
  * Options for configuring the OpenID Connect authorization code flow.
  */
-export interface OpenIDAuthorizationCodeFlowOptions<
+export interface OIDCAuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends AuthorizationCodeGrantFlowOptions<AuthReqBody> {
-  model: OpenIDAuthorizationCodeModel<AuthReqBody>;
+> extends AuthorizationCodeFlowOptions<AuthReqBody> {
+  model: OIDCAuthorizationCodeModel<AuthReqBody>;
   /**
    * The URL where the OpenID Provider's discovery document can be found.
    * This is a required field and should point to the well-known OpenID configuration endpoint
@@ -204,14 +200,14 @@ export interface OpenIDAuthorizationCodeFlowOptions<
   openIdConfiguration?: Record<string, string | string[] | undefined>;
 }
 
-export class OpenIDAuthorizationCodeFlow<
+export class OIDCAuthorizationCodeFlow<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
-> extends AbstractAuthorizationCodeGrantFlow<AuthReqBody> {
+> extends AbstractAuthorizationCodeFlow<AuthReqBody> {
   protected discoveryUrl: string;
   protected jwksUri: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
 
-  constructor(options: OpenIDAuthorizationCodeFlowOptions) {
+  constructor(options: OIDCAuthorizationCodeFlowOptions) {
     const { discoveryUrl, jwksUri, openIdConfiguration, ...baseOptions } = options;
     super(baseOptions);
     this.discoveryUrl = discoveryUrl;
@@ -235,8 +231,8 @@ export class OpenIDAuthorizationCodeFlow<
     return this.openIdConfiguration;
   }
 
-  async getUserInfo(accessToken: string): Promise<OpenIDUserInfo | undefined> {
-    const model = this.model as OpenIDAuthorizationCodeModel<AuthReqBody>;
+  async getUserInfo(accessToken: string): Promise<OIDCUserInfo | undefined> {
+    const model = this.model as OIDCAuthorizationCodeModel<AuthReqBody>;
     if (typeof model.getUserInfo === "function") {
       return await model.getUserInfo(accessToken);
     }
@@ -322,7 +318,7 @@ export class OpenIDAuthorizationCodeFlow<
 
   protected override async getAuthorizationCodeEndpointContext(
     request: Request,
-  ): Promise<OpenIDAuthorizationCodeInitiationResponse> {
+  ): Promise<OIDCAuthorizationCodeInitiationResponse> {
     const query = new URL(request.url).searchParams;
     const clientId = query.get("client_id") || undefined;
     const responseType = query.get("response_type") || undefined;
@@ -394,7 +390,7 @@ export class OpenIDAuthorizationCodeFlow<
     // In a real implementation, you would validate the client_id and redirect_uri here,
     // and then generate an authorization code and redirect the user to the redirect_uri with the code and state as query parameters.
 
-    const reqParams: OpenIDAuthorizationCodeEndpointRequest = {
+    const reqParams: OIDCAuthorizationCodeEndpointRequest = {
       clientId,
       responseType,
       redirectUri,
@@ -458,21 +454,21 @@ export class OpenIDAuthorizationCodeFlow<
 
   override async initiateAuthorization(
     request: Request,
-  ): Promise<OpenIDAuthorizationCodeInitiationResponse> {
+  ): Promise<OIDCAuthorizationCodeInitiationResponse> {
     return await super.initiateAuthorization(request);
   }
 
   override async processAuthorization(
     request: Request,
     reqBody: AuthReqBody,
-  ): Promise<OpenIDAuthorizationCodeProcessResponse> {
+  ): Promise<OIDCAuthorizationCodeProcessResponse> {
     return await super.processAuthorization(request, reqBody);
   }
 
   override async handleAuthorizationEndpoint(
     request: Request,
     reqBody: AuthReqBody,
-  ): Promise<OpenIDAuthorizationCodeEndpointResponse> {
+  ): Promise<OIDCAuthorizationCodeEndpointResponse> {
     return await super.handleAuthorizationEndpoint(request, reqBody);
   }
 
@@ -485,7 +481,7 @@ export class OpenIDAuthorizationCodeFlow<
     };
   }
 
-  override async token(request: Request): Promise<OAuth2AuthFlowTokenResponse> {
+  override async token(request: Request): Promise<OAuth2FlowTokenResponse> {
     const r = await super.token(request);
     if (r.success) {
       const tokenResponse = r.tokenResponse;

@@ -1,10 +1,10 @@
 import { StrategyInternalError } from "@saurbit/oauth2-server";
 
-import { BearerTokenType, HonoClientCredentialsGrantFlow } from "../oauth2_hono_adapter/mod.ts";
+import { BearerTokenType, HonoClientCredentialsFlow } from "../oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";
 import { verifyTokenFunction } from "./common.ts";
 
-export const clientCredentialsFlow = new HonoClientCredentialsGrantFlow({
+export const clientCredentialsFlow = new HonoClientCredentialsFlow({
   model: {
     getClient: async ({
       clientId,
