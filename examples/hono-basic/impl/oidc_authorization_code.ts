@@ -6,6 +6,7 @@ import { BearerTokenType, HonoOIDCAuthorizationCodeFlow } from "../oauth2_hono_a
 import { HTTPException } from "hono/http-exception";
 import { html } from "hono/html";
 import { verifyTokenFunction } from "./common.ts";
+import { HonoOIDCMultipleFlows } from "../oauth2_hono_adapter/oidc_multiple_flow.ts";
 
 export class HTTPRateLimitException extends HTTPException {
   constructor(message: string) {
@@ -475,3 +476,12 @@ export const HtmlFormContent = (props: {
         </body>
       </html>
     `;
+
+  export const oidcMultipleFlows = new HonoOIDCMultipleFlows({
+    flows: [oidcAuthorizationCodeFlow],
+    discoveryUrl: "http://localhost/.well-known/openid-configuration",
+    securitySchemeName: "honoOIDCMultipleFlows",
+    description: "Multiple OIDC Flows for Hono API",
+    jwksEndpoint: "/jwks",
+    tokenEndpoint: "/token",
+  });
