@@ -71,14 +71,21 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow imp
     const wellKnownOpenIDConfig: Record<string, string | string[] | undefined> = {
       issuer: host,
       token_endpoint: tokenEndpoint,
-      userinfo_endpoint: undefined, // irrelevant and typically not used in the client credentials flow
       jwks_uri: jwksEndpoint,
+      // irrelevant and typically not used in the client credentials flow.
+      userinfo_endpoint: undefined,
       registration_endpoint: undefined,
-      claims_supported: ["aud", "exp", "iat", "iss", "sub"],
+      claims_supported: undefined,
       grant_types_supported: [this.grantType],
-      response_types_supported: ["token"],
+      // Because this is an OIDC flow, response_types_supported is required in the discovery document,
+      // even if it's not used in client credentials flow.
+      // "code" is a common value to include here as it is the most widely supported response type in OIDC.
+      response_types_supported: ["code"],
       scopes_supported: Object.keys(scopes),
+      // The client credentials flow typically does not involve user authentication,
+      // so "public" is the most relevant subject type.
       subject_types_supported: ["public"],
+      // The id_token_signing_alg_values_supported field is required in OIDC discovery documents.
       id_token_signing_alg_values_supported: ["RS256"],
       token_endpoint_auth_methods_supported: supported,
     };

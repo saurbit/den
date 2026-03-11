@@ -261,10 +261,10 @@ export class OIDCAuthorizationCodeFlow<
       issuer: host,
       authorization_endpoint: authorizationEndpoint,
       token_endpoint: tokenEndpoint,
-      userinfo_endpoint: undefined, // This can be added to openIdConfiguration if needed
       jwks_uri: jwksEndpoint,
+      userinfo_endpoint: undefined, // This can be added to openIdConfiguration if needed
       registration_endpoint: undefined,
-      claims_supported: ["aud", "exp", "iat", "iss", "sub"],
+      claims_supported: ["sub"],
       grant_types_supported: [this.grantType],
       response_types_supported: ["code"],
       scopes_supported: Object.keys(scopes),

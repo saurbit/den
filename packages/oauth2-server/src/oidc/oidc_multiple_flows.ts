@@ -115,6 +115,9 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
     };
   }
 
+  /**
+   * @link https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+   */
   getDiscoveryConfiguration(): Record<string, string | string[] | undefined> {
     const host = new URL(this.getDiscoveryUrl()).origin;
 
