@@ -236,11 +236,19 @@ export class OIDCAuthorizationCodeFlow<
     };
   }
 
-  getDiscoveryConfiguration() {
+  getDiscoveryConfiguration(req?: Request) {
     const supported = this.getTokenEndpointAuthMethods();
     const scopes = this.getScopes() || {};
 
-    const host = new URL(this.getDiscoveryUrl()).origin;
+    let fullUrl: string | undefined;
+    if (req) {
+      const url = new URL(req.url);
+      const forwardedProto = req.headers.get("x-forwarded-proto");
+      const protocol = forwardedProto ? forwardedProto : url.protocol.replace(":", "");
+      fullUrl = protocol + "://" + url.host;
+    }
+
+    const host = typeof fullUrl === "string" ? fullUrl : new URL(this.getDiscoveryUrl()).origin;
 
     // Format jwks_uri if it's a relative path
     let jwksEndpoint = this.getJwksUri();

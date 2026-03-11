@@ -26,7 +26,7 @@ export interface OIDCFlow extends OAuth2Flow {
   /**
    * @link https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
    */
-  getDiscoveryConfiguration(): Record<string, string | string[] | undefined>;
+  getDiscoveryConfiguration(req?: Request): Record<string, string | string[] | undefined>;
 }
 
 export interface OIDCUserInfo {

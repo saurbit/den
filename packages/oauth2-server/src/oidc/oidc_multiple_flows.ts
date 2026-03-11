@@ -118,7 +118,7 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
   /**
    * @link https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
    */
-  getDiscoveryConfiguration(): Record<string, string | string[] | undefined> {
+  getDiscoveryConfiguration(req?: Request): Record<string, string | string[] | undefined> {
     const host = new URL(this.getDiscoveryUrl()).origin;
 
     let wellKnownOpenIDConfig: {
@@ -144,7 +144,7 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
           token_endpoint: _unused_token_endpoint,
           jwks_uri: _unused_jwks_uri,
           ...more
-        } = flow.getDiscoveryConfiguration();
+        } = flow.getDiscoveryConfiguration(req);
 
         // merge properties
         wellKnownOpenIDConfig = {
