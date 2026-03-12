@@ -9,13 +9,12 @@ import {
   StrategyResult,
 } from "@saurbit/oauth2-server";
 import type { Context, Env, MiddlewareHandler } from "hono";
-import { HonoMethods, OAuth2ServerEnv } from "./types.ts";
+import { HonoAdapted, HonoMethods, OAuth2ServerEnv } from "./types.ts";
 import { HTTPException } from "hono/http-exception";
 
 export interface HonoOIDCFlow<
   E extends Env = Env,
-> extends OIDCFlow {
-  hono(): HonoMethods<E>;
+> extends OIDCFlow, HonoAdapted<E> {
 }
 
 export class HonoOIDCMultipleFlows<
