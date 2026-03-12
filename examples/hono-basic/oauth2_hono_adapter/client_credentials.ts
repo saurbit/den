@@ -1,6 +1,7 @@
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
+  ClientCredentialsBuilder,
   ClientCredentialsFlow,
   ClientCredentialsFlowOptions,
   evaluateStrategy,
@@ -200,6 +201,69 @@ export class HonoOIDCClientCredentialsFlow<
 
   hono(): Readonly<HonoMethods<E>> {
     return Object.freeze(this.#hono);
+  }
+}
+
+//#endregion
+
+//#region Builder
+
+export class HonoClientCredentialsFlowBuilder<
+  E extends Env = Env,
+> extends ClientCredentialsBuilder {
+  protected strategyOptions: HonoStrategyOptionsWithFailedAuth<E> = {};
+
+  constructor(options: Partial<HonoOIDCClientCredentialsFlowOptions<E>>) {
+    const { strategyOptions, ...flowOptions } = options;
+    super({
+      ...flowOptions,
+      strategyOptions: {},
+    });
+    this.strategyOptions = strategyOptions || {};
+  }
+
+  static override create<E extends Env = Env>(
+    options?: Partial<HonoOIDCClientCredentialsFlowOptions<E>>,
+  ) {
+    return new HonoClientCredentialsFlowBuilder<E>(options || {});
+  }
+
+  failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
+    this.strategyOptions.failedAuthorizationAction = action;
+    return this;
+  }
+
+  /**
+   * This method is overridden to prevent setting a verifyToken handler that does not have access to the Hono context.
+   * Use `verifyTokenHandler` instead to set a handler that receives the Hono context.
+   * @deprecated Use `verifyTokenHandler` instead to set a handler that receives the Hono context.
+   * @param _handler
+   * @returns
+   */
+  override verifyToken(_handler: StrategyVerifyTokenFunction<Request>): this {
+    throw new Error("Use verifyTokenHandler() instead, which provides access to the Hono context.");
+  }
+
+  verifyTokenHandler(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
+    this.strategyOptions.verifyToken = handler;
+    return this;
+  }
+
+  override build(): HonoClientCredentialsFlow<E> {
+    const flow = new HonoClientCredentialsFlow<E>({
+      ...this.params,
+      strategyOptions: this.strategyOptions,
+    });
+    if (this.tokenType) {
+      flow.setTokenType(this.tokenType);
+    }
+    if (this.scopes) {
+      flow.setScopes(this.scopes);
+    }
+    for (const clientAuthenticationMethod of this.clientAuthenticationMethods.values()) {
+      flow.addClientAuthenticationMethod(clientAuthenticationMethod);
+    }
+    return flow;
   }
 }
 

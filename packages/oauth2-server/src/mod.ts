@@ -38,6 +38,7 @@ export type {
   OAuth2Token,
 } from "./types.ts";
 
+export { ClientCredentialsBuilder } from "./builders/client_credentials_builder.ts";
 export { ClientSecretBasic } from "./client_auth_methods/client_secret_basic.ts";
 export { ClientSecretPost } from "./client_auth_methods/client_secret_post.ts";
 export { NoneAuthMethod } from "./client_auth_methods/none.ts";
