@@ -95,7 +95,7 @@ export interface StrategyVerifyTokenFunction<Req = Request> {
        */
       token: string;
       /**
-       * Only defined if useAccessTokenJwks is true and jwtVerifier is provided.
+       * Only defined if jwtVerifier is provided.
        * Otherwise, validate and decode the token manually.
        */
       jwtAccessTokenPayload?: JwtPayload;
@@ -115,7 +115,6 @@ export interface StrategyVerifyTokenFunction<Req = Request> {
 
 export interface StrategyOptions {
   tokenType: TokenType;
-  useAccessTokenJwks?: boolean;
   jwtVerifier?: JwtVerifier;
   verifyToken?: StrategyVerifyTokenFunction<Request>;
 }
@@ -147,7 +146,7 @@ export async function evaluateStrategy(
   }
 
   let jwtAccessTokenPayload: JwtPayload | undefined;
-  if (options.useAccessTokenJwks && options.jwtVerifier) {
+  if (options.jwtVerifier) {
     try {
       jwtAccessTokenPayload = await options.jwtVerifier.verify(token);
     } catch {
