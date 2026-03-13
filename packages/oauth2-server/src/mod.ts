@@ -116,6 +116,11 @@ export { OIDCMultipleFlows } from "./oidc/oidc_multiple_flows.ts";
 export type { OIDCFlow, OIDCFlowExtendedOptions, OIDCUserInfo } from "./oidc/types.ts";
 
 export { BearerTokenType, type BearerTokenValidation } from "./token_types/bearer_token.ts";
+export {
+  DPoPTokenType,
+  type DPoPTokenTypeRequestValidation,
+  type DPoPTokenTypeValidation,
+} from "./token_types/dpop_token.ts";
 export type { TokenType, TokenTypeValidationResponse } from "./token_types/types.ts";
 export type {
   JwksKeyStore,
@@ -130,6 +135,12 @@ export type {
   RSA,
 } from "./utils/jwt_authority.ts";
 export { JwksRotator } from "./utils/jwt_authority.ts";
+export {
+  createInMemoryReplayStore,
+  InMemoryReplayStore,
+  type ReplayDetector,
+  type ReplayStore,
+} from "./utils/replay_store.ts";
 export type {
   AppCredentials,
   AuthCredentials,
