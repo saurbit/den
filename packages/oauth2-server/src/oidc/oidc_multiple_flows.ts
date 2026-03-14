@@ -19,7 +19,7 @@
 import { OAuth2Error, OAuth2Errors } from "../errors.ts";
 import { OAuth2FlowTokenResponse } from "../grants/flow.ts";
 import { StrategyError, StrategyInternalError, StrategyResult } from "../strategy.ts";
-import { normalizeUrl } from "../utils/normalize_url.ts";
+import { getOriginFromUrl, normalizeUrl } from "../utils/url_tools.ts";
 import { OIDCFlow } from "./types.ts";
 
 export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
@@ -127,7 +127,9 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
       fullUrl = protocol + "://" + url.host;
     }
 
-    const host = typeof fullUrl === "string" ? fullUrl : new URL(this.getDiscoveryUrl()).origin;
+    const host = typeof fullUrl === "string"
+      ? fullUrl
+      : getOriginFromUrl(this.getDiscoveryUrl()) || "";
 
     let wellKnownOpenIDConfig: {
       authorization_endpoint?: string;

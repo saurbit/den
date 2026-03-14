@@ -2,7 +2,7 @@ import {
   AbstractClientCredentialsFlow,
   ClientCredentialsFlowOptions,
 } from "../grants/client_credentials.ts";
-import { normalizeUrl } from "../utils/normalize_url.ts";
+import { getOriginFromUrl, normalizeUrl } from "../utils/url_tools.ts";
 import { OIDCFlow, OIDCFlowExtendedOptions } from "./types.ts";
 
 /**
@@ -23,10 +23,6 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow imp
     this.discoveryUrl = discoveryUrl;
     this.jwksEndpoint = jwksEndpoint;
     this.openIdConfiguration = openIdConfiguration;
-  }
-
-  protected normalizeUrl(url: string, origin?: string): string {
-    return normalizeUrl(url, origin || new URL(this.discoveryUrl).origin);
   }
 
   getDiscoveryUrl(): string {
@@ -63,17 +59,19 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow imp
       fullUrl = protocol + "://" + url.host;
     }
 
-    const host = typeof fullUrl === "string" ? fullUrl : new URL(this.getDiscoveryUrl()).origin;
+    const host = typeof fullUrl === "string"
+      ? fullUrl
+      : getOriginFromUrl(this.getDiscoveryUrl()) || "";
 
     // Format jwks_uri if it's a relative path
     let jwksEndpoint = this.getJwksEndpoint();
     if (jwksEndpoint) {
-      jwksEndpoint = this.normalizeUrl(jwksEndpoint, host);
+      jwksEndpoint = normalizeUrl(jwksEndpoint, host);
     }
     // Format token endpoint if it's a relative path
     let tokenEndpoint = this.getTokenEndpoint();
     if (tokenEndpoint) {
-      tokenEndpoint = this.normalizeUrl(tokenEndpoint, host);
+      tokenEndpoint = normalizeUrl(tokenEndpoint, host);
     }
 
     const wellKnownOpenIDConfig: Record<string, string | string[] | undefined> = {
@@ -119,10 +117,10 @@ export class OIDCClientCredentialsFlow extends AbstractClientCredentialsFlow imp
 
     // Format unhandled endpoints
     if (typeof result.userinfo_endpoint === "string") {
-      result.userinfo_endpoint = this.normalizeUrl(result.userinfo_endpoint, host);
+      result.userinfo_endpoint = normalizeUrl(result.userinfo_endpoint, host);
     }
     if (typeof result.registration_endpoint === "string") {
-      result.registration_endpoint = this.normalizeUrl(result.registration_endpoint, host);
+      result.registration_endpoint = normalizeUrl(result.registration_endpoint, host);
     }
 
     return result;
