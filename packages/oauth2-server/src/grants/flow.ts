@@ -19,19 +19,14 @@ export type OAuth2FlowTokenResponse =
   | { success: true; tokenResponse: OAuth2TokenResponseBody; grantType: string }
   | { success: false; error: OAuth2Error };
 
+export interface OAuth2FlowStrategyOptions extends Omit<StrategyOptions, "tokenType"> {}
+
 export interface OAuth2FlowOptions {
-  /*
-    logger?: ILogger;
-    jwksOptions?: OAuth2JwksOptions;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jwksRoute?: IJWKSRoute<any>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options?: OAuth2AuthOptions<any>;
-    */
-  strategyOptions: Omit<StrategyOptions, "tokenType">;
+  strategyOptions: OAuth2FlowStrategyOptions;
   securitySchemeName?: string;
   accessTokenLifetime?: number;
   tokenEndpoint?: string;
+  tokenType?: TokenType;
 }
 
 export interface OAuth2AccessTokenResult {
@@ -100,7 +95,7 @@ export interface OAuth2GrantModel<
 export abstract class OAuth2Flow {
   abstract readonly grantType: string;
 
-  readonly strategyOptions: Omit<StrategyOptions, "tokenType">;
+  readonly strategyOptions: OAuth2FlowStrategyOptions;
 
   protected _clientAuthMethods: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
     client_secret_basic: undefined,
@@ -169,7 +164,7 @@ export abstract class OAuth2Flow {
     */
 
   constructor(options?: OAuth2FlowOptions) {
-    this._tokenType = new BearerTokenType();
+    this._tokenType = options?.tokenType || new BearerTokenType();
     if (options?.securitySchemeName) {
       this.securitySchemeName = options?.securitySchemeName;
     }

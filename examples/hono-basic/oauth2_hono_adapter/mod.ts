@@ -11,7 +11,7 @@ export { BearerTokenType } from "@saurbit/oauth2-server";
 export type {
   FailedAuthorizationAction,
   HonoStrategyOptions,
-  HonoStrategyOptionsWithFailedAuth,
+  HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
 

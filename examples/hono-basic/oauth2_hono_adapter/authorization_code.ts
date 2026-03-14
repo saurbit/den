@@ -19,7 +19,7 @@ import {
   FailedAuthorizationAction,
   HonoAdapted,
   HonoMethods,
-  HonoStrategyOptionsWithFailedAuth,
+  HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
 import { OIDCAuthorizationCodeFlow } from "@saurbit/oauth2-server";
@@ -32,7 +32,7 @@ export interface HonoAuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
   E extends Env = Env,
 > extends Omit<AuthorizationCodeFlowOptions<AuthReqBody>, "strategyOptions"> {
-  strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
+  strategyOptions: HonoOAuth2StrategyOptions<E>;
   parseAuthorizationEndpointBody: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqBody>;
 }
 
@@ -76,7 +76,7 @@ export interface HonoOIDCAuthorizationCodeFlowOptions<
   AuthReqBody extends AuthorizationCodeReqBody = AuthorizationCodeReqBody,
   E extends Env = Env,
 > extends Omit<OIDCAuthorizationCodeFlowOptions<AuthReqBody>, "strategyOptions"> {
-  strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
+  strategyOptions: HonoOAuth2StrategyOptions<E>;
   parseAuthorizationEndpointBody: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqBody>;
 }
 

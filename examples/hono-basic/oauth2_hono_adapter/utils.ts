@@ -32,14 +32,9 @@ export function createAuthMiddleware<E extends Env = Env>(
       return await next();
     }
 
-    let message: string;
-    if (Deno.env.get("DENO_ENV") === "production") {
-      message = result.error instanceof StrategyInternalError
+    const message: string = result.error instanceof StrategyInternalError
         ? "Internal Server Error"
         : "Unauthorized";
-    } else {
-      message = result.error.message;
-    }
 
     throw new HTTPException(result.error.status, {
       message,

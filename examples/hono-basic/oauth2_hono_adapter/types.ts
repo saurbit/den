@@ -23,7 +23,7 @@ export interface FailedAuthorizationAction<E extends Env = Env> {
   (context: Context<E & OAuth2ServerEnv>, error: StrategyError): Promise<void> | void;
 }
 
-export interface HonoStrategyOptionsWithFailedAuth<E extends Env = Env>
+export interface HonoOAuth2StrategyOptions<E extends Env = Env>
   extends Omit<HonoStrategyOptions<E>, "tokenType"> {
   failedAuthorizationAction?: FailedAuthorizationAction<E>;
 }

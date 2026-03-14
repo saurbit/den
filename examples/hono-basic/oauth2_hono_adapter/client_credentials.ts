@@ -15,7 +15,7 @@ import {
   FailedAuthorizationAction,
   HonoAdapted,
   HonoMethods,
-  HonoStrategyOptionsWithFailedAuth,
+  HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
 import { OIDCClientCredentialsFlow } from "@saurbit/oauth2-server";
@@ -24,7 +24,7 @@ import { OIDCClientCredentialsFlow } from "@saurbit/oauth2-server";
 
 export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
   extends Omit<ClientCredentialsFlowOptions, "strategyOptions"> {
-  strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
+  strategyOptions: HonoOAuth2StrategyOptions<E>;
 }
 
 //#endregion
@@ -33,7 +33,7 @@ export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
 
 export interface HonoOIDCClientCredentialsFlowOptions<E extends Env = Env>
   extends Omit<OIDCClientCredentialsFlowOptions, "strategyOptions"> {
-  strategyOptions: HonoStrategyOptionsWithFailedAuth<E>;
+  strategyOptions: HonoOAuth2StrategyOptions<E>;
 }
 
 //#endregion
@@ -211,7 +211,7 @@ export class HonoOIDCClientCredentialsFlow<
 export class HonoClientCredentialsFlowBuilder<
   E extends Env = Env,
 > extends ClientCredentialsBuilder {
-  protected strategyOptions: HonoStrategyOptionsWithFailedAuth<E> = {};
+  protected strategyOptions: HonoOAuth2StrategyOptions<E> = {};
 
   constructor(options: Partial<HonoClientCredentialsFlowOptions<E>>) {
     const { strategyOptions, ...flowOptions } = options;
