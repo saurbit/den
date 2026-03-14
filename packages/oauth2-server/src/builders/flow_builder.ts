@@ -1,45 +1,22 @@
-/*import { ClientSecretBasic } from "../client_auth_methods/client_secret_basic.ts";
+import { ClientSecretBasic } from "../client_auth_methods/client_secret_basic.ts";
 import { ClientSecretPost } from "../client_auth_methods/client_secret_post.ts";
 import { NoneAuthMethod } from "../client_auth_methods/none.ts";
-import { ClientAuthMethod } from "../client_auth_methods/types.ts";
-import {
-  ClientCredentialsGrantContext,
-  ClientCredentialsTokenRequest,
-} from "../grants/client_credentials.ts";
-import {
-  OAuth2AccessTokenResult,
-  OAuth2GenerateAccessTokenFunction,
-  OAuth2GetClientFunction,
-} from "../grants/flow.ts";
-import {
-  OIDCClientCredentialsFlow,
-  OIDCClientCredentialsFlowOptions,
-} from "../oidc/oidc_client_credentials.ts";
+import { ClientAuthMethod, TokenEndpointAuthMethod } from "../client_auth_methods/types.ts";
+import { OAuth2Flow, OAuth2FlowOptions } from "../grants/flow.ts";
 import { StrategyVerifyTokenFunction } from "../strategy.ts";
 import { TokenType } from "../token_types/types.ts";
 
-export class OIDCClientCredentialsBuilder {
-  protected params: OIDCClientCredentialsFlowOptions;
-  protected clientAuthenticationMethods: Map<string, ClientAuthMethod> = new Map();
+export abstract class OAuth2FlowBuilder {
+  protected params: OAuth2FlowOptions;
+  protected description?: string | undefined;
+  protected scopes: Record<string, string> = {};
+  protected clientAuthenticationMethods: Map<TokenEndpointAuthMethod, ClientAuthMethod> = new Map();
 
-  constructor(params: Partial<OIDCClientCredentialsFlowOptions>) {
+  constructor(params: Partial<OAuth2FlowOptions>) {
     this.params = {
       strategyOptions: params.strategyOptions || {},
-      model: params.model || {
-        generateAccessToken() {
-          return undefined;
-        },
-        getClient() {
-          return undefined;
-        },
-      },
-      discoveryUrl: params.discoveryUrl || "/.well-known/openid-configuration",
       ...params,
     };
-  }
-
-  static create(): OIDCClientCredentialsBuilder {
-    return new OIDCClientCredentialsBuilder({});
   }
 
   getAccessTokenLifetime(): number | undefined {
@@ -55,11 +32,11 @@ export class OIDCClientCredentialsBuilder {
   }
 
   getDescription(): string | undefined {
-    return this.params.description;
+    return this.description;
   }
 
   getScopes(): Record<string, string> {
-    return this.params.scopes ? { ...this.params.scopes } : {};
+    return { ...this.scopes };
   }
 
   setAccessTokenLifetime(lifetime: number): this {
@@ -83,27 +60,12 @@ export class OIDCClientCredentialsBuilder {
   }
 
   setDescription(description: string): this {
-    this.params.description = description;
+    this.description = description;
     return this;
   }
 
   setScopes(scopes: Record<string, string>): this {
-    this.params.scopes = scopes;
-    return this;
-  }
-
-  getClient(handler: OAuth2GetClientFunction<ClientCredentialsTokenRequest>): this {
-    this.params.model.getClient = handler;
-    return this;
-  }
-
-  generateAccessToken(
-    handler: OAuth2GenerateAccessTokenFunction<
-      ClientCredentialsGrantContext,
-      OAuth2AccessTokenResult | string
-    >,
-  ): this {
-    this.params.model.generateAccessToken = handler;
+    this.scopes = scopes;
     return this;
   }
 
@@ -113,12 +75,24 @@ export class OIDCClientCredentialsBuilder {
   }
 
   addClientAuthenticationMethod(
-    clientAuthenticationMethod: ClientAuthMethod,
+    value: "client_secret_basic" | "client_secret_post" | "none" | ClientAuthMethod,
   ): this {
-    this.clientAuthenticationMethods.set(
-      clientAuthenticationMethod.method,
-      clientAuthenticationMethod,
-    );
+    if (value == "client_secret_basic") {
+      this.clientSecretBasicAuthenticationMethod();
+    } else if (value == "client_secret_post") {
+      this.clientSecretPostAuthenticationMethod();
+    } else if (value == "none") {
+      this.noneAuthenticationMethod();
+    } else {
+      this.clientAuthenticationMethods.set(value.method, value);
+    }
+    return this;
+  }
+
+  removeClientAuthenticationMethod(
+    method: TokenEndpointAuthMethod,
+  ): this {
+    this.clientAuthenticationMethods.delete(method);
     return this;
   }
 
@@ -149,14 +123,16 @@ export class OIDCClientCredentialsBuilder {
     return this;
   }
 
-  build(): OIDCClientCredentialsFlow {
-    const params: OIDCClientCredentialsFlowOptions = { ...this.params };
+  protected buildParams(): OAuth2FlowOptions {
+    const params: OAuth2FlowOptions = { ...this.params };
+
     if (this.clientAuthenticationMethods.size > 0) {
       params.clientAuthenticationMethods = Array.from(
         this.clientAuthenticationMethods.values(),
       );
     }
-    return new OIDCClientCredentialsFlow(params);
+    return params;
   }
+
+  abstract build(): OAuth2Flow;
 }
-*/

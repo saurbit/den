@@ -236,17 +236,13 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
   },
   accessTokenLifetime: 3600,
   securitySchemeName: "honoAuthorizationCode",
+  // Set the token type to Bearer
+  tokenType: new BearerTokenType(),
+  // Configure the authorization code flow with both
+  // - client secret basic authentication method and
+  // - client secret post authentication methods
+  clientAuthenticationMethods: ["client_secret_basic", "client_secret_post"],
 });
-
-// Configure the authorization code flow with both
-// - client secret basic authentication method and
-// - client secret post authentication methods
-authorizationCodeFlow
-  .clientSecretBasicAuthenticationMethod()
-  .clientSecretPostAuthenticationMethod();
-
-// Set the token type to Bearer
-authorizationCodeFlow.setTokenType(new BearerTokenType());
 
 // Set the description and scopes for the OpenAPI documentation
 authorizationCodeFlow

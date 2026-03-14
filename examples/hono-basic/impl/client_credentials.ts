@@ -18,6 +18,7 @@ export const clientCredentialsFlow = HonoClientCredentialsFlowBuilder
   .setAccessTokenLifetime(3600)
   .clientSecretBasicAuthenticationMethod()
   .clientSecretPostAuthenticationMethod()
+  // Set the token type to Bearer
   .setTokenType(new BearerTokenType())
   .getClient(async ({ clientId, clientSecret: _cs, grantType, scope }) => {
     console.log("getClient called with:", { clientId, grantType, scope });
@@ -110,19 +111,9 @@ export const clientCredentialsFlowInstance = new HonoClientCredentialsFlow({
   },
   accessTokenLifetime: 3600,
   securitySchemeName: "honoClientCredentials",
+  clientAuthenticationMethods: ["client_secret_basic", "client_secret_post"],
+  tokenType: new BearerTokenType(),
 });
-
-// Configure the client credentials flow with both
-// - client secret basic authentication method and
-// - client secret post authentication methods
-clientCredentialsFlow
-  .clientSecretBasicAuthenticationMethod()
-  .clientSecretPostAuthenticationMethod();
-
-// Set the token type to Bearer
-clientCredentialsFlow.setTokenType(
-  new BearerTokenType(),
-);
 
 // Set the description and scopes for the OpenAPI documentation
 clientCredentialsFlow

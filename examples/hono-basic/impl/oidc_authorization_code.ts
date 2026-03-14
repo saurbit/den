@@ -245,17 +245,13 @@ export const oidcAuthorizationCodeFlow = new HonoOIDCAuthorizationCodeFlow({
   },
   accessTokenLifetime: 3600,
   securitySchemeName: "honoAuthorizationCode",
+  // Set the token type to Bearer
+  tokenType: new BearerTokenType(),
+  clientAuthenticationMethods: [
+    "client_secret_basic",
+    "client_secret_post",
+  ],
 });
-
-// Configure the authorization code flow with both
-// - client secret basic authentication method and
-// - client secret post authentication methods
-oidcAuthorizationCodeFlow
-  .clientSecretBasicAuthenticationMethod()
-  .clientSecretPostAuthenticationMethod();
-
-// Set the token type to Bearer
-oidcAuthorizationCodeFlow.setTokenType(new BearerTokenType());
 
 // Set the description and scopes for the OpenAPI documentation
 oidcAuthorizationCodeFlow

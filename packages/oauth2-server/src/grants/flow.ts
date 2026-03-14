@@ -11,7 +11,6 @@ import {
   sortTokenEndpointAuthMethods,
   TokenEndpointAuthMethod,
 } from "../client_auth_methods/mod.ts";
-//import { JwtAuthority } from "../utils/jwt_authority.ts";
 import { OAuth2Client, OAuth2TokenResponseBody } from "../types.ts";
 import { evaluateStrategy, StrategyOptions, StrategyResult } from "../strategy.ts";
 
@@ -27,6 +26,14 @@ export interface OAuth2FlowOptions {
   accessTokenLifetime?: number;
   tokenEndpoint?: string;
   tokenType?: TokenType;
+  description?: string;
+  scopes?: Record<string, string>;
+  clientAuthenticationMethods?: (
+    | ClientAuthMethod
+    | "client_secret_basic"
+    | "client_secret_post"
+    | "none"
+  )[];
 }
 
 export interface OAuth2AccessTokenResult {
@@ -95,7 +102,7 @@ export interface OAuth2GrantModel<
 export abstract class OAuth2Flow {
   abstract readonly grantType: string;
 
-  readonly strategyOptions: OAuth2FlowStrategyOptions;
+  protected readonly strategyOptions: OAuth2FlowStrategyOptions;
 
   protected _clientAuthMethods: Record<TokenEndpointAuthMethod, ClientAuthMethod | undefined> = {
     client_secret_basic: undefined,
@@ -165,6 +172,19 @@ export abstract class OAuth2Flow {
 
   constructor(options?: OAuth2FlowOptions) {
     this._tokenType = options?.tokenType || new BearerTokenType();
+
+    if (options?.clientAuthenticationMethods) {
+      for (const clientAuthMethod of options.clientAuthenticationMethods) {
+        this.addClientAuthenticationMethod(clientAuthMethod);
+      }
+    }
+    if (options?.description) {
+      this.description = options.description;
+    }
+    if (options?.scopes) {
+      this.scopes = { ...options.scopes };
+    }
+
     if (options?.securitySchemeName) {
       this.securitySchemeName = options?.securitySchemeName;
     }
@@ -176,7 +196,9 @@ export abstract class OAuth2Flow {
     } else {
       this.strategyOptions = {};
     }
-    this.accessTokenLifetime = options?.accessTokenLifetime || 3600;
+    if (options?.accessTokenLifetime) {
+      this.accessTokenLifetime = options.accessTokenLifetime;
+    }
     //this.options = options?.options ? { ...options.options } : {};
 
     //this.jwksRoute = options?.jwksRoute;
@@ -231,6 +253,21 @@ export abstract class OAuth2Flow {
       clientSecret,
       method,
     };
+  }
+
+  protected addClientAuthenticationMethod(
+    value: "client_secret_basic" | "client_secret_post" | "none" | ClientAuthMethod,
+  ): this {
+    if (value == "client_secret_basic") {
+      this._clientAuthMethods.client_secret_basic = new ClientSecretBasic();
+    } else if (value == "client_secret_post") {
+      this._clientAuthMethods.client_secret_post = new ClientSecretPost();
+    } else if (value == "none") {
+      this._clientAuthMethods.none = new NoneAuthMethod();
+    } else {
+      this._clientAuthMethods[value.method] = value;
+    }
+    return this;
   }
 
   /*
@@ -304,11 +341,6 @@ export abstract class OAuth2Flow {
     }
         */
 
-  setTokenType(value: TokenType): this {
-    this._tokenType = value;
-    return this;
-  }
-
   getTokenEndpointAuthMethods(): TokenEndpointAuthMethod[] {
     const result = Object.keys(this._clientAuthMethods)
       .map((key) => {
@@ -321,36 +353,6 @@ export abstract class OAuth2Flow {
     }
 
     return sortTokenEndpointAuthMethods(result);
-  }
-
-  clientSecretBasicAuthenticationMethod(): this {
-    this._clientAuthMethods.client_secret_basic = new ClientSecretBasic();
-    return this;
-  }
-
-  clientSecretPostAuthenticationMethod(): this {
-    this._clientAuthMethods.client_secret_post = new ClientSecretPost();
-    return this;
-  }
-
-  noneAuthenticationMethod(): this {
-    this._clientAuthMethods.none = new NoneAuthMethod();
-    return this;
-  }
-
-  addClientAuthenticationMethod(
-    value: "client_secret_basic" | "client_secret_post" | "none" | ClientAuthMethod,
-  ): this {
-    if (value == "client_secret_basic") {
-      this.clientSecretPostAuthenticationMethod();
-    } else if (value == "client_secret_post") {
-      this.clientSecretBasicAuthenticationMethod();
-    } else if (value == "none") {
-      this.noneAuthenticationMethod();
-    } else {
-      this._clientAuthMethods[value.method] = value;
-    }
-    return this;
   }
 
   /**

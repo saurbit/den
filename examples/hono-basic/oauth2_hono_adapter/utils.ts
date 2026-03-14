@@ -33,8 +33,8 @@ export function createAuthMiddleware<E extends Env = Env>(
     }
 
     const message: string = result.error instanceof StrategyInternalError
-        ? "Internal Server Error"
-        : "Unauthorized";
+      ? "Internal Server Error"
+      : "Unauthorized";
 
     throw new HTTPException(result.error.status, {
       message,

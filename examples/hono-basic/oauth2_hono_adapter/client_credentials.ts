@@ -250,23 +250,11 @@ export class HonoClientCredentialsFlowBuilder<
   }
 
   override build(): HonoClientCredentialsFlow<E> {
-    const flow = new HonoClientCredentialsFlow<E>({
-      ...this.params,
+    const params: HonoClientCredentialsFlowOptions<E> = {
+      ...this.buildParams(),
       strategyOptions: this.strategyOptions,
-    });
-    if (this.tokenType) {
-      flow.setTokenType(this.tokenType);
-    }
-    if (this.scopes) {
-      flow.setScopes(this.scopes);
-    }
-    if (this.description) {
-      flow.setDescription(this.description);
-    }
-    for (const clientAuthenticationMethod of this.clientAuthenticationMethods.values()) {
-      flow.addClientAuthenticationMethod(clientAuthenticationMethod);
-    }
-    return flow;
+    };
+    return new HonoClientCredentialsFlow<E>(params);
   }
 }
 

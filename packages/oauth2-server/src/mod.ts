@@ -56,6 +56,7 @@ export type {
 export type {
   OAuth2AccessTokenResult,
   OAuth2FlowOptions,
+  OAuth2FlowStrategyOptions,
   OAuth2FlowTokenResponse,
   OAuth2GenerateAccessTokenFromRefreshTokenFunction,
   OAuth2GenerateAccessTokenFunction,
@@ -63,7 +64,6 @@ export type {
   OAuth2GrantModel,
   OAuth2RefreshTokenGrantContext,
   OAuth2RefreshTokenRequest,
-  OAuth2FlowStrategyOptions
 } from "./grants/flow.ts";
 export { OAuth2Flow } from "./grants/flow.ts";
 export type {

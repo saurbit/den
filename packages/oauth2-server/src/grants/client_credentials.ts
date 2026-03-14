@@ -1,5 +1,6 @@
 // grants/client_credentials.ts
 
+import { ClientAuthMethod } from "../client_auth_methods/types.ts";
 import {
   InvalidClientError,
   InvalidRequestError,
@@ -72,6 +73,15 @@ export abstract class AbstractClientCredentialsFlow extends OAuth2Flow
     const { model, ...flowOptions } = { ...options };
     super(flowOptions);
     this.model = model;
+  }
+
+  protected override addClientAuthenticationMethod(
+    value: "client_secret_basic" | "client_secret_post" | "none" | ClientAuthMethod,
+  ): this {
+    if (value === "none") {
+      return this;
+    }
+    return super.addClientAuthenticationMethod(value);
   }
 
   /**
