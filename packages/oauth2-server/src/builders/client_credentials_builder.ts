@@ -28,10 +28,6 @@ export class ClientCredentialsBuilder extends OAuth2FlowBuilder {
     };
   }
 
-  static create(): ClientCredentialsBuilder {
-    return new ClientCredentialsBuilder({});
-  }
-
   override noneAuthenticationMethod(): this {
     return this;
   }

@@ -8,15 +8,20 @@ import { TokenType } from "../token_types/types.ts";
 
 export abstract class OAuth2FlowBuilder {
   protected params: OAuth2FlowOptions;
-  protected description?: string | undefined;
-  protected scopes: Record<string, string> = {};
   protected clientAuthenticationMethods: Map<TokenEndpointAuthMethod, ClientAuthMethod> = new Map();
 
   constructor(params: Partial<OAuth2FlowOptions>) {
+    const { clientAuthenticationMethods, ...options } = params;
     this.params = {
-      strategyOptions: params.strategyOptions || {},
-      ...params,
+      strategyOptions: options.strategyOptions || {},
+      ...options,
     };
+
+    if (clientAuthenticationMethods) {
+      for (const method of clientAuthenticationMethods) {
+        this.addClientAuthenticationMethod(method);
+      }
+    }
   }
 
   getAccessTokenLifetime(): number | undefined {
@@ -32,11 +37,11 @@ export abstract class OAuth2FlowBuilder {
   }
 
   getDescription(): string | undefined {
-    return this.description;
+    return this.params.description;
   }
 
   getScopes(): Record<string, string> {
-    return { ...this.scopes };
+    return { ...this.params.scopes || {} };
   }
 
   setAccessTokenLifetime(lifetime: number): this {
@@ -60,12 +65,12 @@ export abstract class OAuth2FlowBuilder {
   }
 
   setDescription(description: string): this {
-    this.description = description;
+    this.params.description = description;
     return this;
   }
 
   setScopes(scopes: Record<string, string>): this {
-    this.scopes = scopes;
+    this.params.scopes = scopes;
     return this;
   }
 

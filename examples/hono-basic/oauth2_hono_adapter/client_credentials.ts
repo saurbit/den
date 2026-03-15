@@ -223,7 +223,7 @@ export class HonoClientCredentialsFlowBuilder<
     this.strategyOptions = strategyOptions || {};
   }
 
-  static override create<E extends Env = Env>(
+  static create<E extends Env = Env>(
     options?: Partial<HonoClientCredentialsFlowOptions<E>>,
   ) {
     return new HonoClientCredentialsFlowBuilder<E>(options || {});
@@ -273,7 +273,7 @@ export class HonoOIDCClientCredentialsFlowBuilder<
     this.strategyOptions = strategyOptions || {};
   }
 
-  static override create<E extends Env = Env>(
+  static create<E extends Env = Env>(
     options?: Partial<HonoOIDCClientCredentialsFlowOptions<E>>,
   ) {
     return new HonoOIDCClientCredentialsFlowBuilder<E>(options || {});

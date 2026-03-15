@@ -56,13 +56,3 @@ export const clientCredentialsFlow = HonoClientCredentialsFlowBuilder
       message,
     });
   }).build();
-
-// Set the description and scopes for the OpenAPI documentation
-clientCredentialsFlow
-  .setDescription("Client Credentials Grant Flow for Hono API")
-  .setScopes({
-    "content:read": "Read content",
-    "content:write": "Write content",
-    "admin": "Admin access",
-  })
-  .setTokenEndpoint("/token"); // Set the token URL for the OpenAPI documentation

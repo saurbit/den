@@ -36,10 +36,6 @@ export class OIDCClientCredentialsBuilder extends OAuth2FlowBuilder {
     this.openIdConfiguration = openIdConfiguration;
   }
 
-  static create(): OIDCClientCredentialsBuilder {
-    return new OIDCClientCredentialsBuilder({});
-  }
-
   override noneAuthenticationMethod(): this {
     return this;
   }

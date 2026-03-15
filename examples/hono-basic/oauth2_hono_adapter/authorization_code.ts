@@ -69,6 +69,14 @@ export interface HonoAuthorizationCodeMethods<E extends Env = Env> extends HonoM
   ): Promise<OIDCAuthorizationCodeEndpointResponse>;
 }
 
+export interface HonoAuthorizationCodeFlowBuilderOptions<
+  AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
+  E extends Env = Env,
+> extends
+  Partial<Omit<HonoAuthorizationCodeFlowOptions<AuthReqData, E>, "parseAuthorizationEndpointData">>,
+  Pick<HonoAuthorizationCodeFlowOptions<AuthReqData, E>, "parseAuthorizationEndpointData"> {
+}
+
 //#endregion
 
 //#region OpenID Connect Types and Interfaces
@@ -396,27 +404,27 @@ export class HonoAuthorizationCodeFlowBuilder<
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
 > extends AuthorizationCodeBuilder<AuthReqData> {
   protected strategyOptions: HonoOAuth2StrategyOptions<E> = {};
-  protected _parseAuthorizationEndpointData?: (
+  protected parseAuthorizationEndpointDataHandler: (
     context: Context<E & OAuth2ServerEnv>,
   ) => Promise<AuthReqData>;
 
-  constructor(options: Partial<HonoAuthorizationCodeFlowOptions<AuthReqData, E>>) {
+  constructor(options: HonoAuthorizationCodeFlowBuilderOptions<AuthReqData, E>) {
     const { strategyOptions, parseAuthorizationEndpointData, ...flowOptions } = options;
     super({
       ...flowOptions,
       strategyOptions: {},
     });
     this.strategyOptions = strategyOptions || {};
-    this._parseAuthorizationEndpointData = parseAuthorizationEndpointData;
+    this.parseAuthorizationEndpointDataHandler = parseAuthorizationEndpointData;
   }
 
-  static override create<
+  static create<
     E extends Env = Env,
     AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
   >(
-    options?: Partial<HonoAuthorizationCodeFlowOptions<AuthReqData, E>>,
+    options: HonoAuthorizationCodeFlowBuilderOptions<AuthReqData, E>,
   ) {
-    return new HonoAuthorizationCodeFlowBuilder<E, AuthReqData>(options || {});
+    return new HonoAuthorizationCodeFlowBuilder<E, AuthReqData>(options);
   }
 
   failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
@@ -443,7 +451,7 @@ export class HonoAuthorizationCodeFlowBuilder<
   parseAuthorizationEndpointData(
     handler: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqData>,
   ): this {
-    this._parseAuthorizationEndpointData = handler;
+    this.parseAuthorizationEndpointDataHandler = handler;
     return this;
   }
 
@@ -451,17 +459,7 @@ export class HonoAuthorizationCodeFlowBuilder<
     const params: HonoAuthorizationCodeFlowOptions<AuthReqData, E> = {
       ...this.buildParams(),
       strategyOptions: this.strategyOptions,
-      parseAuthorizationEndpointData: this._parseAuthorizationEndpointData || (async (context) => {
-        const formData = await context.req.formData();
-        const data: Record<string, unknown> = {};
-
-        for (const key of formData.keys()) {
-          const values = formData.getAll(key);
-          data[key] = values.length === 1 ? values[0] : values;
-        }
-
-        return data as AuthReqData;
-      }),
+      parseAuthorizationEndpointData: this.parseAuthorizationEndpointDataHandler,
     };
     return new HonoAuthorizationCodeFlow<E, AuthReqData>(params);
   }

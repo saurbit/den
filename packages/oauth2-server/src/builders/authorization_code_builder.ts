@@ -48,12 +48,6 @@ export class AuthorizationCodeBuilder<
     this.authorizationEndpoint = authorizationEndpoint;
   }
 
-  static create<
-    AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
-  >(): AuthorizationCodeBuilder<AuthReqData> {
-    return new AuthorizationCodeBuilder<AuthReqData>({});
-  }
-
   setAuthorizationEndpoint(url: string): this {
     this.authorizationEndpoint = url;
     return this;

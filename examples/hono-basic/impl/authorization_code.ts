@@ -2,29 +2,56 @@
 
 import { StrategyInternalError } from "@saurbit/oauth2-server";
 
-import { BearerTokenType, HonoAuthorizationCodeFlow } from "../oauth2_hono_adapter/mod.ts";
+import { BearerTokenType } from "../oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";
 import { html } from "hono/html";
 import { HTTPRateLimitException, verifyTokenFunction } from "./common.ts";
+import { HonoAuthorizationCodeFlowBuilder } from "../oauth2_hono_adapter/authorization_code.ts";
 
-export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
-  parseAuthorizationEndpointData: async (context) => {
-    const formData = await context.req.formData();
-    const username = formData.get("username");
-    const password = formData.get("password");
-    console.log("Parsing authorization endpoint body:", { username, password });
-    if (username === "gg") {
-      throw new HTTPRateLimitException("Rate limit exceeded");
-    }
-    return {
-      username: typeof username === "string" ? username : "",
-      password: typeof password === "string" ? password : "",
-    };
-  },
-  model: {
-    // -- at authorization endpoint
+export const authorizationCodeFlow = HonoAuthorizationCodeFlowBuilder
+  .create({
+    // The parseAuthorizationEndpointData function is used to parse the incoming request data at the authorization endpoint.
+    // In this example, we're parsing form data to extract the username and password fields.
+    // You can customize this function to parse different types of data or to perform additional validation as needed.
+    parseAuthorizationEndpointData: async (context) => {
+      const formData = await context.req.formData();
+      const username = formData.get("username");
+      const password = formData.get("password");
+      console.log("Parsing authorization endpoint body:", { username, password });
+      if (username === "gg") {
+        throw new HTTPRateLimitException("Rate limit exceeded");
+      }
+      return {
+        username: typeof username === "string" ? username : "",
+        password: typeof password === "string" ? password : "",
+      };
+    },
+  })
+  // -- common configuration for OpenAPI documentation
 
-    getClientForAuthentication: async ({
+  .setSecuritySchemeName("honoAuthorizationCode")
+  .setDescription("Authorization Code Grant Flow for Hono API (built with builder)")
+  .setScopes({
+    "content:read": "Read content",
+    "content:write": "Write content",
+    "admin": "Admin access",
+  })
+  .setTokenEndpoint("/token")
+  .setAuthorizationEndpoint("/authorize")
+  // -- configuration for the authorization code flow
+
+  .setAccessTokenLifetime(3600)
+  // Configure the authorization code flow with both
+  // - client secret basic authentication method and
+  // - client secret post authentication methods
+  .addClientAuthenticationMethod("client_secret_basic")
+  .addClientAuthenticationMethod("client_secret_post")
+  // Set the token type to Bearer
+  .setTokenType(new BearerTokenType())
+  // -- handlers at authorization endpoint
+
+  .getClientForAuthentication(
+    async ({
       clientId,
       redirectUri,
       responseType: _rt,
@@ -49,8 +76,9 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
         });
       }
     },
-
-    getUserForAuthentication: async (
+  )
+  .getUserForAuthentication(
+    async (
       {
         client: _c,
         redirectUri: _r,
@@ -93,8 +121,9 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
         });
       }
     },
-
-    generateAuthorizationCode: async ({
+  )
+  .generateAuthorizationCode(
+    async ({
       client: _c,
       redirectUri: _r,
       responseType: _rt,
@@ -122,44 +151,27 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
         code: "authcode-" + scope.join(","),
       });
     },
+  )
+  // -- handlers at token endpoint
 
-    // -- at token endpoint
+  .getClient(async ({ clientId, clientSecret: _c, ...props }) => {
+    console.log("getClient called with:", { clientId, grantType: props.grantType });
+    if (props.grantType === "refresh_token") {
+      // For refresh token request, you would typically validate the refresh token and return the associated client information. For this example, we'll just return a dummy client object if the clientId matches.
+      if (clientId === "my-client" && props.refreshToken.startsWith("valid-refresh-token-")) {
+        // If asking for new scope, it cannot have scopes that are not
+        // in the original scope associated with the refresh token
 
-    getClient: async ({ clientId, clientSecret: _c, ...props }) => {
-      console.log("getClient called with:", { clientId, grantType: props.grantType });
-      if (props.grantType === "refresh_token") {
-        // For refresh token request, you would typically validate the refresh token and return the associated client information. For this example, we'll just return a dummy client object if the clientId matches.
-        if (clientId === "my-client" && props.refreshToken.startsWith("valid-refresh-token-")) {
-          // If asking for new scope, it cannot have scopes that are not
-          // in the original scope associated with the refresh token
-
-          const scope = props.refreshToken.slice("valid-refresh-token-".length).split(",");
-          const invalidScopes = props.scope?.filter((scope) => !scope.includes(scope));
-          if (invalidScopes && invalidScopes.length > 0) {
-            console.log("Invalid scopes in refresh token request:", {
-              requestedScopes: props.scope,
-              validScopes: scope,
-            });
-            return; // Return if there are invalid scopes in the request
-          }
-
-          return await Promise.resolve({
-            id: "my-client",
-            redirectUris: ["http://localhost/callback"],
-            grants: ["authorization_code"],
-            scopes: ["content:read", "content:write"],
-            metadata: {
-              // You can include any additional metadata here that you want
-              // to be available in the grant context for generating the access token
-              newScope: props.scope || scope,
-              exampleMetadata: "exampleValue",
-            },
+        const scope = props.refreshToken.slice("valid-refresh-token-".length).split(",");
+        const invalidScopes = props.scope?.filter((scope) => !scope.includes(scope));
+        if (invalidScopes && invalidScopes.length > 0) {
+          console.log("Invalid scopes in refresh token request:", {
+            requestedScopes: props.scope,
+            validScopes: scope,
           });
+          return; // Return if there are invalid scopes in the request
         }
-        return; // Return if the client is not found or the refresh token is invalid
-      }
-      if (clientId === "my-client" && props.code.startsWith("authcode-")) {
-        const scope = props.code.slice("authcode-".length).split(",");
+
         return await Promise.resolve({
           id: "my-client",
           redirectUris: ["http://localhost/callback"],
@@ -168,13 +180,31 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
           metadata: {
             // You can include any additional metadata here that you want
             // to be available in the grant context for generating the access token
-            newScope: scope,
+            newScope: props.scope || scope,
             exampleMetadata: "exampleValue",
           },
         });
       }
-    },
-    generateAccessToken: ({
+      return; // Return if the client is not found or the refresh token is invalid
+    }
+    if (clientId === "my-client" && props.code.startsWith("authcode-")) {
+      const scope = props.code.slice("authcode-".length).split(",");
+      return await Promise.resolve({
+        id: "my-client",
+        redirectUris: ["http://localhost/callback"],
+        grants: ["authorization_code"],
+        scopes: ["content:read", "content:write"],
+        metadata: {
+          // You can include any additional metadata here that you want
+          // to be available in the grant context for generating the access token
+          newScope: scope,
+          exampleMetadata: "exampleValue",
+        },
+      });
+    }
+  })
+  .generateAccessToken(
+    ({
       accessTokenLifetime: _a,
       client,
       grantType: _g,
@@ -197,7 +227,9 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
         };
       }
     },
-    generateAccessTokenFromRefreshToken: (context) => {
+  )
+  .generateAccessTokenFromRefreshToken(
+    (context) => {
       console.log("generateAccessTokenFromRefreshToken called with:", {
         client: context.client,
         grantType: context.grantType,
@@ -214,46 +246,24 @@ export const authorizationCodeFlow = new HonoAuthorizationCodeFlow({
         };
       }
     },
-  },
-  strategyOptions: {
-    failedAuthorizationAction: (_, error) => {
-      // You can perform additional actions here, such as logging or modifying the response
-      console.log("Authorization failed:", {
-        error: error.name,
-        message: error.message,
-      });
-      let message: string;
-      if (Deno.env.get("DENO_ENV") === "production") {
-        message = error instanceof StrategyInternalError ? "Internal Server Error" : "Unauthorized";
-      } else {
-        message = "Unauthorized";
-      }
-      throw new HTTPException(401, {
-        message,
-      });
-    },
-    verifyToken: verifyTokenFunction,
-  },
-  accessTokenLifetime: 3600,
-  securitySchemeName: "honoAuthorizationCode",
-  // Set the token type to Bearer
-  tokenType: new BearerTokenType(),
-  // Configure the authorization code flow with both
-  // - client secret basic authentication method and
-  // - client secret post authentication methods
-  clientAuthenticationMethods: ["client_secret_basic", "client_secret_post"],
-});
+  )
+  // -- handlers for token verification and failed authorization
 
-// Set the description and scopes for the OpenAPI documentation
-authorizationCodeFlow
-  .setDescription("Authorization Code Grant Flow for Hono API")
-  .setScopes({
-    "content:read": "Read content",
-    "content:write": "Write content",
-    admin: "Admin access",
+  .verifyTokenHandler(verifyTokenFunction)
+  .failedAuthorizationAction((_, error) => {
+    // You can perform additional actions here, such as logging or modifying the response
+    console.log("Authorization failed:", { error: error.name, message: error.message });
+    let message: string;
+    if (Deno.env.get("DENO_ENV") === "production") {
+      message = error instanceof StrategyInternalError ? "Internal Server Error" : "Unauthorized";
+    } else {
+      message = "Unauthorized";
+    }
+    throw new HTTPException(401, {
+      message,
+    });
   })
-  .setTokenEndpoint("/token") // Set the token URL for the OpenAPI documentation
-  .setAuthorizationEndpoint("/authorize"); // Set the authorization URL for the OpenAPI documentation
+  .build();
 
 export const HtmlFormContent = (props: {
   errorMessage?: string;
