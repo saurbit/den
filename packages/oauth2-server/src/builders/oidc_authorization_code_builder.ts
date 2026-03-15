@@ -30,6 +30,8 @@ export class OIDCAuthorizationCodeFlowBuilder<
   protected jwksEndpoint: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
   protected authorizationEndpoint?: string;
+  protected userInfoEndpoint?: string;
+  protected registrationEndpoint?: string;
 
   constructor(params: Partial<OIDCAuthorizationCodeFlowOptions<AuthReqData>>) {
     const {
@@ -37,6 +39,8 @@ export class OIDCAuthorizationCodeFlowBuilder<
       authorizationEndpoint,
       discoveryUrl,
       jwksEndpoint,
+      userInfoEndpoint,
+      registrationEndpoint,
       openIdConfiguration,
       ...rest
     } = params;
@@ -62,6 +66,8 @@ export class OIDCAuthorizationCodeFlowBuilder<
     this.jwksEndpoint = jwksEndpoint || "/.well-known/jwks.json";
     this.openIdConfiguration = openIdConfiguration;
     this.authorizationEndpoint = authorizationEndpoint;
+    this.userInfoEndpoint = userInfoEndpoint;
+    this.registrationEndpoint = registrationEndpoint;
   }
 
   setDiscoveryUrl(url: string): this {
@@ -98,6 +104,24 @@ export class OIDCAuthorizationCodeFlowBuilder<
 
   getAuthorizationEndpoint(): string | undefined {
     return this.authorizationEndpoint;
+  }
+
+  setUserInfoEndpoint(url: string): this {
+    this.userInfoEndpoint = url;
+    return this;
+  }
+
+  getUserInfoEndpoint(): string | undefined {
+    return this.userInfoEndpoint;
+  }
+
+  setRegistrationEndpoint(url: string): this {
+    this.registrationEndpoint = url;
+    return this;
+  }
+
+  getRegistrationEndpoint(): string | undefined {
+    return this.registrationEndpoint;
   }
 
   generateAccessToken(
@@ -159,6 +183,8 @@ export class OIDCAuthorizationCodeFlowBuilder<
       authorizationEndpoint: this.authorizationEndpoint,
       discoveryUrl: this.discoveryUrl,
       jwksEndpoint: this.jwksEndpoint,
+      userInfoEndpoint: this.userInfoEndpoint,
+      registrationEndpoint: this.registrationEndpoint,
       openIdConfiguration: this.openIdConfiguration,
     };
   }

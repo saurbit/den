@@ -176,6 +176,10 @@ export interface OIDCAuthorizationCodeFlowOptions<
    * It can be an absolute URL or a relative path (e.g., /jwks) which will be resolved against the discovery URL's origin.
    */
   jwksEndpoint: string;
+
+  userInfoEndpoint?: string;
+
+  registrationEndpoint?: string;
 }
 
 export class OIDCAuthorizationCodeFlow<
@@ -183,13 +187,24 @@ export class OIDCAuthorizationCodeFlow<
 > extends AbstractAuthorizationCodeFlow<AuthReqData> implements OIDCFlow {
   protected discoveryUrl: string;
   protected jwksEndpoint: string;
+  protected userInfoEndpoint?: string;
+  protected registrationEndpoint?: string;
   protected openIdConfiguration?: Record<string, string | string[] | undefined>;
 
   constructor(options: OIDCAuthorizationCodeFlowOptions<AuthReqData>) {
-    const { discoveryUrl, jwksEndpoint, openIdConfiguration, ...baseOptions } = options;
+    const {
+      discoveryUrl,
+      jwksEndpoint,
+      userInfoEndpoint,
+      registrationEndpoint,
+      openIdConfiguration,
+      ...baseOptions
+    } = options;
     super(baseOptions);
     this.discoveryUrl = discoveryUrl;
     this.jwksEndpoint = jwksEndpoint;
+    this.userInfoEndpoint = userInfoEndpoint;
+    this.registrationEndpoint = registrationEndpoint;
     this.openIdConfiguration = openIdConfiguration;
   }
 
@@ -203,6 +218,14 @@ export class OIDCAuthorizationCodeFlow<
 
   getOpenIdConfiguration(): Record<string, string | string[] | undefined> | undefined {
     return this.openIdConfiguration;
+  }
+
+  getUserInfoEndpoint(): string | undefined {
+    return this.userInfoEndpoint;
+  }
+
+  getRegistrationEndpoint(): string | undefined {
+    return this.registrationEndpoint;
   }
 
   async getUserInfo(accessToken: string): Promise<OIDCUserInfo | undefined> {
@@ -265,8 +288,8 @@ export class OIDCAuthorizationCodeFlow<
       authorization_endpoint: authorizationEndpoint,
       token_endpoint: tokenEndpoint,
       jwks_uri: jwksEndpoint,
-      userinfo_endpoint: undefined, // This can be added to openIdConfiguration if needed
-      registration_endpoint: undefined,
+      userinfo_endpoint: this.getUserInfoEndpoint(),
+      registration_endpoint: this.getRegistrationEndpoint(),
       claims_supported: ["sub"],
       grant_types_supported: [this.grantType],
       response_types_supported: ["code"],

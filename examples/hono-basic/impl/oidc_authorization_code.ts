@@ -36,6 +36,8 @@ export const oidcAuthorizationCodeFlow = HonoOIDCAuthorizationCodeFlowBuilder.cr
   .setJwksEndpoint("/jwks")
   .setTokenEndpoint("/token") // Set the token URL for the OpenAPI documentation
   .setAuthorizationEndpoint("/authorize") // Set the authorization URL for the OpenAPI documentation
+  .setUserInfoEndpoint("/userinfo") // Set the user info URL for the OpenAPI documentation
+  .setRegistrationEndpoint("/register") // Set the registration URL for the OpenAPI documentation
   .clientSecretBasicAuthenticationMethod()
   .clientSecretPostAuthenticationMethod()
   .setAccessTokenLifetime(3600)
