@@ -1,0 +1,12 @@
+{
+  "name": "@saurbit/example-oak-basic",
+  "version": "0.0.0",
+  "exports": "./main.ts",
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env --watch main.ts",
+    "start": "deno run --allow-net --allow-env main.ts"
+  },
+  "imports": {
+    "@oak/oak": "jsr:@oak/oak@^17.2.0"
+  }
+}

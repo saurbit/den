@@ -1,6 +1,15 @@
 import { assertEquals, assertInstanceOf } from "@std/assert";
-import { ClientCredentialsFlow, InvalidRequestError, OAuth2Error } from "./src/mod.ts";
-import type { ClientCredentialsFlowOptions, ClientCredentialsModel } from "./src/mod.ts";
+import {
+  AuthorizationCodeFlow,
+  ClientCredentialsFlow,
+  InvalidRequestError,
+  OAuth2Error,
+} from "./src/mod.ts";
+import type {
+  AuthorizationCodeModel,
+  ClientCredentialsFlowOptions,
+  ClientCredentialsModel,
+} from "./src/mod.ts";
 
 /** Minimal stub model for testing. */
 function createStubModel(): ClientCredentialsModel {
@@ -14,6 +23,27 @@ function createStubModel(): ClientCredentialsModel {
 function createStubStrategy(): ClientCredentialsFlowOptions["strategyOptions"] {
   return {};
 }
+
+/** Minimal stub model for auth code testing. */
+function createStubAuthCodeModel(): AuthorizationCodeModel {
+  return {
+    getClient: () => Promise.resolve(undefined),
+    generateAccessToken: () => Promise.resolve(undefined),
+    generateAuthorizationCode: () => Promise.resolve(undefined),
+    getUserForAuthentication: () => Promise.resolve(undefined),
+    getClientForAuthentication: () => Promise.resolve(undefined),
+  };
+}
+
+Deno.test("OAuth2Server - AuthorizationCodeFlow can be instantiated with some default options", () => {
+  const flow = new AuthorizationCodeFlow({
+    model: createStubAuthCodeModel(),
+    strategyOptions: createStubStrategy(),
+  });
+  assertEquals(flow.getAccessTokenLifetime(), 3600);
+  assertEquals(flow.getSecuritySchemeName(), "oauth2-flow");
+  assertEquals(flow.grantType, "authorization_code");
+});
 
 Deno.test("OAuth2Server - ClientCredentialsFlow can be instantiated with some default options", () => {
   const flow = new ClientCredentialsFlow({
