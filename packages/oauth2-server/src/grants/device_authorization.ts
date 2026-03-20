@@ -1,7 +1,8 @@
-import { OAuth2Error } from "../errors.ts";
+import { OAuth2Error, ServerError } from "../errors.ts";
 import { OAuth2Client } from "../types.ts";
 import {
   OAuth2AccessTokenResult,
+  OAuth2Flow,
   OAuth2FlowOptions,
   OAuth2GetClientFunction,
   OAuth2GrantModel,
@@ -46,7 +47,7 @@ export interface DeviceAuthorizationEndpointContext {
   tokenType: string;
   accessTokenLifetime: number;
   interval: number;
-  verificationUri?: string;
+  verificationEndpoint: string; // verificationUri
 }
 
 /**
@@ -65,7 +66,7 @@ export interface DeviceAuthorizationEndpointCodeResponse<
   user: DeviceAuthorizationUser;
   deviceCode: string;
   userCode: string;
-  verificationUriComplete?: string;
+  verificationEndpointComplete: string; // verificationUriComplete
   error?: never;
   [key: string]: unknown;
 }
@@ -104,18 +105,23 @@ export interface GenerateDeviceCodeFunction<
   (
     context: TContext,
   ):
-    | Promise<string | undefined>
-    | string
-    | undefined;
+    | Promise<{
+        deviceCode: string;
+        userCode: string;
+        user: DeviceAuthorizationUser
+    } | undefined>
+    | {
+        deviceCode: string;
+        userCode: string;
+        user: DeviceAuthorizationUser
+    } | undefined;
 }
 
 /**
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the device authorization grant.
  */
-export interface DeviceAuthorizationModel<
-  AuthReqData extends DeviceAuthorizationReqData = DeviceAuthorizationReqData,
-> extends
+export interface DeviceAuthorizationModel extends
   OAuth2GrantModel<
     DeviceAuthorizationTokenRequest | OAuth2RefreshTokenRequest,
     DeviceAuthorizationGrantContext,
@@ -148,15 +154,508 @@ export interface DeviceAuthorizationModel<
   >;
   */
 
+  verifyUserCode: (userCode: string) => 
+    | Promise<{ /*success: true;*/ deviceCode: string; /*userCode: string,*/ client: OAuth2Client } | undefined>
+    | { /*success: true;*/ deviceCode: string; /*userCode: string,*/ client: OAuth2Client }
+    | undefined;
+
   generateDeviceCode: GenerateDeviceCodeFunction<DeviceAuthorizationEndpointContext>;
 }
 
 /**
  * Options for configuring the device authorization grant flow.
  */
-export interface DeviceAuthorizationFlowOptions<
-  AuthReqData extends DeviceAuthorizationReqData = DeviceAuthorizationReqData,
-> extends OAuth2FlowOptions {
-  model: DeviceAuthorizationModel<AuthReqData>;
+export interface DeviceAuthorizationFlowOptions extends OAuth2FlowOptions {
+  model: DeviceAuthorizationModel;
   authorizationEndpoint?: string;
+  verificationEndpoint?: string;
 }
+
+/*
+export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow implements DeviceAuthorizationGrant {
+  readonly grantType = "urn:ietf:params:oauth:grant-type:device_code" as const;
+  protected readonly model: DeviceAuthorizationModel;
+
+  protected authorizationEndpoint: string = "/authorize";
+  protected verificationEndpoint: string = "/verify";
+
+  constructor(options: DeviceAuthorizationFlowOptions) {
+    const { model, authorizationEndpoint, verificationEndpoint, ...flowOptions } = { ...options };
+    super(flowOptions);
+    this.model = model;
+    if (authorizationEndpoint) {
+      this.authorizationEndpoint = authorizationEndpoint;
+    }
+    if (verificationEndpoint) {
+      this.verificationEndpoint = verificationEndpoint;
+    }
+  }
+
+  setAuthorizationEndpoint(url: string): this {
+    this.authorizationEndpoint = url;
+    return this;
+  }
+
+  getAuthorizationEndpoint(): string {
+    return this.authorizationEndpoint;
+  }
+
+  setVerificationEndpoint(url: string): this {
+    this.verificationEndpoint = url;
+    return this;
+  }
+
+  getVerificationEndpoint(): string {
+    return this.verificationEndpoint;
+  }
+
+  protected async getAuthorizationCodeEndpointContext(
+    request: Request,
+  ): Promise<AuthorizationCodeInitiationResponse> {
+    const query = new URL(request.url).searchParams;
+    const clientId = query.get("client_id") || undefined;
+    const responseType = query.get("response_type") || undefined;
+    const redirectUri = query.get("redirect_uri") || undefined;
+    const scope = query.get("scope") || undefined;
+    const state = query.get("state") || undefined;
+    const codeChallenge = query.get("code_challenge") || undefined;
+    const tmpCodeChallengeMethod = query.get("code_challenge_method");
+    const codeChallengeMethod: "S256" | "plain" | undefined = tmpCodeChallengeMethod === "S256"
+      ? "S256"
+      : tmpCodeChallengeMethod === "plain"
+      ? "plain"
+      : codeChallenge
+      ? "plain" // RFC 7636 §4.3 default
+      : undefined;
+
+    if (!clientId) {
+      return {
+        success: false,
+        error: new InvalidRequestError("Missing client_id parameter"),
+        redirectable: false,
+      };
+    }
+
+    if (responseType !== "code") {
+      return {
+        success: false,
+        error: new UnsupportedResponseTypeError("Unsupported response type"),
+        redirectable: false,
+      };
+    }
+
+    if (!redirectUri) {
+      return {
+        success: false,
+        error: new InvalidRequestError("Missing redirect_uri parameter"),
+        redirectable: false,
+      };
+    }
+
+    // In a real implementation, you would validate the client_id and redirect_uri here,
+    // and then generate an authorization code and redirect the user to the redirect_uri with the code and state as query parameters.
+
+    const client = await this.model.getClientForAuthentication({
+      clientId,
+      scope: scope ? scope.split(" ") : undefined,
+      clientSecret
+    });
+
+    if (!client) {
+      return {
+        success: false,
+        error: new InvalidRequestError(
+          "Invalid client_id or redirect_uri or scope",
+        ),
+        redirectable: false,
+      };
+    }
+
+    // Validate scope if provided in the request body (optional)
+    let validatedScopes: string[];
+    if (client.scopes) {
+      const allowedScopes = client.scopes ? client.scopes : [];
+      validatedScopes = scope?.split(" ")?.filter((scope) => allowedScopes.includes(scope)) ||
+        [];
+    } else {
+      validatedScopes = [];
+    }
+
+    return {
+      success: true,
+      context: {
+        client,
+        responseType,
+        redirectUri,
+        scope: validatedScopes,
+        state,
+        codeChallenge,
+        codeChallengeMethod,
+      },
+    };
+  }
+
+
+  async processAuthorization(
+    request: Request,
+  ): Promise<DeviceAuthorizationProcessResponse> {
+
+    const context = await this.getAuthorizationCodeEndpointContext(request);
+
+    if (!context.success) {
+      return {
+        type: "error",
+        error: context.error,
+      };
+    }
+
+    const {
+      client,
+      scope,
+    } = context.context;
+
+
+    const codeResult = await this.model.generateDeviceCode(
+      {
+        ...context.context,
+        scope: [...scope],
+      },
+    );
+
+    if (!codeResult) {
+      return {
+        type: "error",
+        error: new ServerError("Failed to generate device code"),
+        client,
+      };
+    }
+
+    return {
+      type: "device_code",
+      deviceCodeResponse: {
+        context: context.context,
+        scope: [...scope],
+        user: codeResult.user,
+        deviceCode: codeResult.deviceCode,
+        userCode: codeResult.userCode, // In a real implementation, you would generate a separate user code that is easier for the user to input, and associate it with the device code in your data store.
+        verificationEndpointComplete: `${this.verificationEndpoint}?user_code=${encodeURIComponent(codeResult.userCode)}&client_id=${encodeURIComponent(client.clientId)}`,
+      },
+    };
+  }
+
+  async handleAuthorizationEndpoint(
+    request: Request,
+    reqData: AuthReqData,
+  ): Promise<AuthorizationCodeEndpointResponse> {
+    if (request.method === "GET") {
+      // In a real implementation, you would render a login page
+      // or consent page here for the user
+      // to authenticate and authorize the client.
+      const result = await this.initiateAuthorization(request);
+
+      if (!result.success) {
+        return {
+          ...result,
+          type: "error",
+        };
+      }
+
+      return {
+        ...result,
+        type: "initiated",
+        method: "GET",
+      };
+    }
+
+    if (request.method === "POST") {
+      // In a real implementation, you would authenticate the user here,
+      // and if authentication is successful, generate an authorization code,
+      // and redirect the user to the redirect_uri with the code and state as query parameters.
+
+      const result = await this.processAuthorization(request, reqData);
+
+      if (result.type === "error") {
+        return result;
+      }
+
+      return {
+        ...result,
+        method: "POST",
+      };
+    }
+
+    return {
+      type: "error",
+      error: new InvalidRequestError("Unsupported HTTP method"),
+      redirectable: false,
+    };
+  }
+
+  async initiateToken(request: Request): Promise<
+    | {
+      success: true;
+      context: AuthorizationCodeGrantContext | OAuth2RefreshTokenGrantContext;
+    }
+    | { success: false; error: OAuth2Error }
+  > {
+    const req = request.clone();
+    if (req.method !== "POST") {
+      return {
+        success: false,
+        error: new InvalidRequestError("Method Not Allowed"),
+      };
+    }
+
+    let body: unknown;
+    let grantTypeInBody: string | undefined;
+    let codeInBody: string | undefined;
+    let codeVerifierInBody: string | undefined;
+    let redirectUriInBody: string | undefined;
+
+    let refreshTokenInBody: string | undefined;
+    let scopeInBody: string[] | undefined;
+    const contentType = req.headers.get("content-type") || "";
+
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const form = await req.formData();
+      body = {
+        grant_type: form.get("grant_type"),
+        code: form.get("code"),
+        code_verifier: form.get("code_verifier"),
+        redirect_uri: form.get("redirect_uri"),
+
+        // for refresh token
+        refresh_token: form.get("refresh_token"),
+        scope: form.get("scope"),
+      };
+    } else if (contentType.includes("application/json")) {
+      body = req.json ? await req.json() : null;
+    } else {
+      return {
+        success: false,
+        error: new InvalidRequestError("Unsupported Media Type"),
+      };
+    }
+
+    if (body && typeof body === "object") {
+      if ("grant_type" in body) {
+        grantTypeInBody = typeof body.grant_type === "string" ? body.grant_type : undefined;
+      }
+      if ("code" in body) {
+        codeInBody = typeof body.code === "string" ? body.code : undefined;
+      }
+      if ("code_verifier" in body) {
+        codeVerifierInBody = typeof body.code_verifier === "string"
+          ? body.code_verifier
+          : undefined;
+      }
+      if ("redirect_uri" in body) {
+        redirectUriInBody = typeof body.redirect_uri === "string" ? body.redirect_uri : undefined;
+      }
+      if ("refresh_token" in body) {
+        refreshTokenInBody = typeof body.refresh_token === "string"
+          ? body.refresh_token
+          : undefined;
+      }
+      if ("scope" in body) {
+        scopeInBody = typeof body.scope === "string" ? body.scope.split(" ") : undefined;
+      }
+    }
+
+    // Validate that the grant type in the request body matches this grant type
+    if (grantTypeInBody === "refresh_token" && this.model.generateAccessTokenFromRefreshToken) {
+      if (!refreshTokenInBody) {
+        return {
+          success: false,
+          error: new InvalidRequestError("Missing refresh token"),
+        };
+      }
+    } else if (grantTypeInBody === this.grantType) {
+      if (!codeInBody) {
+        return {
+          success: false,
+          error: new InvalidRequestError("Missing authorization code"),
+        };
+      }
+    } else {
+      return {
+        success: false,
+        error: new UnsupportedGrantTypeError("Unsupported grant type"),
+      };
+    }
+
+    // Validate client authentication credentials using the registered client authentication methods
+    const { clientId, clientSecret, error, method: clientAuthMethod } = await this
+      .extractClientCredentials(
+        request.clone(),
+        this.clientAuthMethods,
+        this.getTokenEndpointAuthMethods(),
+      );
+
+    // If the request contains client authentication credentials, validate them
+    if (!error) {
+      // If clientId is missing, return 401 error
+      if (!clientId) {
+        return {
+          success: false,
+          error: new InvalidClientError("Invalid client credentials"),
+        };
+      }
+
+      if (
+        grantTypeInBody === "authorization_code" && clientAuthMethod === "none" &&
+        !codeVerifierInBody
+      ) {
+        // If the client authentication method is "none", then PKCE verification is required for public clients (RFC 7636 §4.1.2).
+        return {
+          success: false,
+          error: new InvalidRequestError(
+            "Public clients must use PKCE with the authorization code grant",
+          ),
+        };
+      }
+
+      // e.g. for DPoP token type, we need to validate the token request before validating client credentials
+      const tokenTypeValidationResponse: TokenTypeValidationResponse = this
+          ._tokenType.isValidTokenRequest
+        ? await this._tokenType.isValidTokenRequest(request.clone())
+        : { isValid: true };
+      if (!tokenTypeValidationResponse.isValid) {
+        return {
+          success: false,
+          error: new InvalidRequestError(
+            tokenTypeValidationResponse.message || "Invalid token request",
+          ),
+        };
+      }
+
+      // Validate client credentials using the model's getClient() method
+      let client: OAuth2Client | undefined;
+      if (grantTypeInBody === "authorization_code" && codeInBody) {
+        const tokenRequest: AuthorizationCodeTokenRequest = {
+          clientId,
+          clientSecret,
+          grantType: grantTypeInBody,
+          code: codeInBody,
+          codeVerifier: codeVerifierInBody,
+          redirectUri: redirectUriInBody,
+        };
+        client = await this.model.getClient(
+          tokenRequest,
+        );
+      } else if (grantTypeInBody === "refresh_token" && refreshTokenInBody) {
+        const refreshTokenRequest: OAuth2RefreshTokenRequest = {
+          clientId,
+          clientSecret,
+          grantType: grantTypeInBody,
+          refreshToken: refreshTokenInBody,
+          scope: scopeInBody ? [...scopeInBody] : undefined,
+        };
+        client = await this.model.getClient(
+          refreshTokenRequest,
+        );
+      }
+
+      // If client authentication fails, return 401 error
+      if (!client) {
+        return {
+          success: false,
+          error: new InvalidClientError("Invalid client credentials"),
+        };
+      }
+
+      // validate that client is allowed to use authorization code grant type
+      if (!client.grants || !client.grants.includes(this.grantType)) {
+        return {
+          success: false,
+          error: new UnauthorizedClientError(
+            "Unauthorized client for this grant type",
+          ),
+        };
+      }
+
+      return {
+        success: true,
+        context: grantTypeInBody === "authorization_code"
+          ? {
+            client,
+            grantType: grantTypeInBody,
+            tokenType: this.tokenType,
+            accessTokenLifetime: this.accessTokenLifetime,
+            code: codeInBody!,
+            codeVerifier: codeVerifierInBody,
+            redirectUri: redirectUriInBody,
+          }
+          : {
+            client,
+            grantType: grantTypeInBody,
+            tokenType: this.tokenType,
+            accessTokenLifetime: this.accessTokenLifetime,
+            refreshToken: refreshTokenInBody!,
+            scope: scopeInBody,
+          },
+      };
+    }
+
+    return { success: false, error };
+  }
+
+  async token(request: Request): Promise<OAuth2FlowTokenResponse> {
+    const initiationResult = await this.initiateToken(request);
+
+    if (!initiationResult.success) {
+      return initiationResult;
+    }
+
+    const { context } = initiationResult;
+
+    // generate access token from client, valid scope,
+    // and any other relevant information,
+    // using the model's generateAccessToken() or generateAccessTokenFromRefreshToken() methods
+    const accessTokenResult = context.grantType === "authorization_code"
+      ? await this.model.generateAccessToken?.(
+        // avoid mutation
+        { ...context },
+      )
+      : await this.model.generateAccessTokenFromRefreshToken?.(
+        // avoid mutation
+        { ...context, scope: context.scope ? [...context.scope] : undefined },
+      );
+
+    // If token generation fails
+    if (!accessTokenResult) {
+      return {
+        success: false,
+        error: new ServerError("Failed to generate access token"),
+      };
+    }
+
+    const tokenResponse: OAuth2TokenResponseBody = {
+      access_token: typeof accessTokenResult === "string"
+        ? accessTokenResult
+        : accessTokenResult.accessToken,
+      token_type: this.tokenType,
+      expires_in: context.accessTokenLifetime,
+      scope: typeof accessTokenResult === "object" && accessTokenResult.scope
+        ? accessTokenResult.scope.join(" ")
+        : undefined,
+      id_token: typeof accessTokenResult === "object" && accessTokenResult.idToken
+        ? accessTokenResult.idToken
+        : undefined,
+    };
+
+    if (
+      typeof accessTokenResult === "object" &&
+      typeof accessTokenResult.refreshToken === "string"
+    ) {
+      tokenResponse.refresh_token = accessTokenResult.refreshToken;
+    }
+
+    return {
+      success: true,
+      tokenResponse,
+      grantType: context.grantType,
+    };
+  }
+}
+*/
