@@ -133,6 +133,9 @@ export {
 
 export {
   AccessDeniedError,
+  AuthorizationPendingError,
+  DeviceAuthorizationFlowErrorCodes,
+  ExpiredTokenError,
   InsufficientScopeError,
   InvalidClientError,
   InvalidGrantError,
@@ -142,6 +145,7 @@ export {
   OAuth2Error,
   OAuth2Errors,
   ServerError,
+  SlowDownError,
   UnauthorizedClientError,
   UnauthorizedRequestError,
   UnsupportedGrantTypeError,

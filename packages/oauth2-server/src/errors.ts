@@ -157,7 +157,7 @@ export class UnauthorizedRequestError extends OAuth2Error {
   }
 }
 
-export const DeviceAuthorizationFlowErrorCode = Object.freeze(
+export const DeviceAuthorizationFlowErrorCodes = Object.freeze(
   {
     /**
      * User denied the request. Stop polling.
