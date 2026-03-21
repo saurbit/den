@@ -149,12 +149,17 @@ export type DeviceAuthorizationInitiationResponse<
 /**
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the device authorization grant.
+ *
+ * TODO: generateAccessToken should accept returning error codes authorization_pending, slow_down,
+ * expired_token, and access_denied to handle the various states of the device code authorization
+ * process as defined in RFC 8628.
+ * @see https://datatracker.ietf.org/doc/html/rfc8628#section-3.5
  */
 export interface DeviceAuthorizationModel extends
   OAuth2GrantModel<
     DeviceAuthorizationTokenRequest | OAuth2RefreshTokenRequest,
     DeviceAuthorizationGrantContext,
-    DeviceAuthorizationAccessTokenResult | string
+    DeviceAuthorizationAccessTokenResult
   > {
   /**
    * Retrieve and validate the client for an authorization code or refresh token request.
@@ -175,20 +180,12 @@ export interface DeviceAuthorizationModel extends
 
   getClientForAuthentication: OAuth2GetClientFunction<DeviceAuthorizationEndpointRequest>;
 
-  /*
-  getUser()
-  getUserForAuthentication: GetUserForAuthenticationFunction<
-    DeviceAuthorizationEndpointContext,
-    AuthReqData
-  >;
-  */
-
   verifyUserCode: (userCode: string) =>
     | Promise<
-      | { /*success: true;*/ deviceCode: string; /*userCode: string,*/ client: OAuth2Client }
+      | { deviceCode: string; client: OAuth2Client }
       | undefined
     >
-    | { /*success: true;*/ deviceCode: string; /*userCode: string,*/ client: OAuth2Client }
+    | { deviceCode: string; client: OAuth2Client }
     | undefined;
 
   generateDeviceCode: GenerateDeviceCodeFunction<DeviceAuthorizationEndpointContext>;
@@ -383,6 +380,49 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
     return {
       type: "error",
       error: new InvalidRequestError("Unsupported HTTP method"),
+    };
+  }
+
+  async verifyUserCode(userCode: string): Promise<
+    | { success: true; deviceCode: string; client: OAuth2Client }
+    | { success: false; error: OAuth2Error }
+  >;
+  async verifyUserCode(request: Request): Promise<
+    | { success: true; deviceCode: string; client: OAuth2Client }
+    | { success: false; error: OAuth2Error }
+  >;
+  async verifyUserCode(request: Request | string): Promise<
+    | { success: true; deviceCode: string; client: OAuth2Client }
+    | { success: false; error: OAuth2Error }
+  > {
+    let userCode: string | null = null;
+    if (typeof request === "string") {
+      userCode = request;
+    } else {
+      const query = new URL(request.url).searchParams;
+      userCode = query.get("user_code");
+    }
+
+    if (!userCode) {
+      return {
+        success: false,
+        error: new InvalidRequestError("Missing user_code parameter"),
+      };
+    }
+
+    const verificationResult = await this.model.verifyUserCode(userCode);
+
+    if (!verificationResult) {
+      return {
+        success: false,
+        error: new InvalidRequestError("Invalid user code"),
+      };
+    }
+
+    return {
+      success: true,
+      deviceCode: verificationResult.deviceCode,
+      client: verificationResult.client,
     };
   }
 
