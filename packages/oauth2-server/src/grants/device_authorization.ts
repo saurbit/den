@@ -18,6 +18,7 @@ import {
   OAuth2Flow,
   OAuth2FlowOptions,
   OAuth2FlowTokenResponse,
+  OAuth2GenerateAccessTokenFromRefreshTokenFunction,
   OAuth2GetClientFunction,
   OAuth2GrantModel,
   OAuth2RefreshTokenGrantContext,
@@ -198,6 +199,10 @@ export interface DeviceAuthorizationModel extends
     | undefined;
 
   generateDeviceCode: GenerateDeviceCodeFunction<DeviceAuthorizationEndpointContext>;
+
+  generateAccessTokenFromRefreshToken?: OAuth2GenerateAccessTokenFromRefreshTokenFunction<
+    DeviceAuthorizationAccessTokenResult
+  >;
 }
 
 /**
@@ -657,6 +662,9 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
       };
     }
 
+    // Only for device code grant, we need to handle the specific errors
+    // related to the device code authorization process as defined in RFC 8628.
+    // For refresh token grant, the error handling is done in the generic way in the flow token endpoint handler.
     if (accessTokenResult.type === "error") {
       switch (accessTokenResult.error) {
         case "authorization_pending":
