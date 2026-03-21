@@ -1,14 +1,19 @@
 import {
+  AccessDeniedError,
+  AuthorizationPendingError,
+  ExpiredTokenError,
   InvalidClientError,
   InvalidRequestError,
   OAuth2Error,
   ServerError,
+  SlowDownError,
   UnauthorizedClientError,
   UnsupportedGrantTypeError,
 } from "../errors.ts";
 import { TokenTypeValidationResponse } from "../token_types/types.ts";
 import { OAuth2Client, OAuth2TokenResponseBody } from "../types.ts";
 import {
+  OAuth2AccessTokenError,
   OAuth2AccessTokenResult,
   OAuth2Flow,
   OAuth2FlowOptions,
@@ -119,6 +124,15 @@ export interface DeviceAuthorizationAccessTokenResult extends OAuth2AccessTokenR
   idToken?: string;
 }
 
+export interface DeviceAuthorizationAccessTokenError extends OAuth2AccessTokenError {
+  error:
+    | "authorization_pending"
+    | "slow_down"
+    | "expired_token"
+    | "access_denied"
+    | "invalid_request";
+}
+
 export interface GenerateDeviceCodeFunction<
   TContext extends DeviceAuthorizationEndpointContext = DeviceAuthorizationEndpointContext,
 > {
@@ -149,17 +163,12 @@ export type DeviceAuthorizationInitiationResponse<
 /**
  * Model interface that must be implemented by the consuming application
  * to provide persistence for clients and tokens related to the device authorization grant.
- *
- * TODO: generateAccessToken should accept returning error codes authorization_pending, slow_down,
- * expired_token, and access_denied to handle the various states of the device code authorization
- * process as defined in RFC 8628.
- * @see https://datatracker.ietf.org/doc/html/rfc8628#section-3.5
  */
 export interface DeviceAuthorizationModel extends
   OAuth2GrantModel<
     DeviceAuthorizationTokenRequest | OAuth2RefreshTokenRequest,
     DeviceAuthorizationGrantContext,
-    DeviceAuthorizationAccessTokenResult
+    DeviceAuthorizationAccessTokenResult | DeviceAuthorizationAccessTokenError
   > {
   /**
    * Retrieve and validate the client for an authorization code or refresh token request.
@@ -646,6 +655,51 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
         success: false,
         error: new ServerError("Failed to generate access token"),
       };
+    }
+
+    if (accessTokenResult.type === "error") {
+      switch (accessTokenResult.error) {
+        case "authorization_pending":
+          return {
+            success: false,
+            error: new AuthorizationPendingError(
+              accessTokenResult.errorDescription,
+              accessTokenResult.errorUri,
+            ),
+          };
+        case "slow_down":
+          return {
+            success: false,
+            error: new SlowDownError(
+              accessTokenResult.errorDescription,
+              accessTokenResult.errorUri,
+            ),
+          };
+        case "expired_token":
+          return {
+            success: false,
+            error: new ExpiredTokenError(
+              accessTokenResult.errorDescription,
+              accessTokenResult.errorUri,
+            ),
+          };
+        case "access_denied":
+          return {
+            success: false,
+            error: new AccessDeniedError(
+              accessTokenResult.errorDescription,
+              accessTokenResult.errorUri,
+            ),
+          };
+        default:
+          return {
+            success: false,
+            error: new InvalidRequestError(
+              accessTokenResult.errorDescription || "Invalid token request",
+              accessTokenResult.errorUri,
+            ),
+          };
+      }
     }
 
     const tokenResponse: OAuth2TokenResponseBody = {

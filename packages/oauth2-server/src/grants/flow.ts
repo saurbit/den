@@ -37,7 +37,15 @@ export interface OAuth2FlowOptions {
 }
 
 export interface OAuth2AccessTokenResult {
+  type?: "access_token";
   accessToken: string;
+}
+
+export interface OAuth2AccessTokenError {
+  type: "error";
+  error: string;
+  errorDescription?: string;
+  errorUri?: string;
 }
 
 /** */
@@ -67,13 +75,13 @@ export interface OAuth2GetClientFunction<TRequestInfo> {
 
 export interface OAuth2GenerateAccessTokenFunction<
   TGrantContext,
-  TAccessToken extends OAuth2AccessTokenResult | string,
+  TAccessToken extends OAuth2AccessTokenResult | OAuth2AccessTokenError | string,
 > {
   (context: TGrantContext): Promise<TAccessToken | undefined> | TAccessToken | undefined;
 }
 
 export interface OAuth2GenerateAccessTokenFromRefreshTokenFunction<
-  TAccessToken extends OAuth2AccessTokenResult | string,
+  TAccessToken extends OAuth2AccessTokenResult | OAuth2AccessTokenError | string,
 > {
   (
     context: OAuth2RefreshTokenGrantContext,
@@ -83,7 +91,9 @@ export interface OAuth2GenerateAccessTokenFromRefreshTokenFunction<
 export interface OAuth2GrantModel<
   TTokenRequest,
   TGrantContext,
-  TAccessToken extends OAuth2AccessTokenResult | string = OAuth2AccessTokenResult | string,
+  TAccessToken extends OAuth2AccessTokenResult | OAuth2AccessTokenError | string =
+    | OAuth2AccessTokenResult
+    | string,
 > {
   /**
    * Retrieve a client by its id and optionally verify its secret.
