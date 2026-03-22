@@ -89,6 +89,12 @@ export type {
 export { OIDCAuthorizationCodeFlow } from "./oidc/oidc_authorization_code.ts";
 export type { OIDCClientCredentialsFlowOptions } from "./oidc/oidc_client_credentials.ts";
 export { OIDCClientCredentialsFlow } from "./oidc/oidc_client_credentials.ts";
+export type {
+  OIDCDeviceAuthorizationAccessTokenResult,
+  OIDCDeviceAuthorizationFlowOptions,
+  OIDCDeviceAuthorizationModel,
+} from "./oidc/oidc_device_authorization.ts";
+export { OIDCDeviceAuthorizationFlowBuilder } from "./oidc/oidc_device_authorization.ts";
 export { OIDCMultipleFlows } from "./oidc/oidc_multiple_flows.ts";
 export type { OIDCFlow, OIDCFlowExtendedOptions, OIDCUserInfo } from "./oidc/types.ts";
 
