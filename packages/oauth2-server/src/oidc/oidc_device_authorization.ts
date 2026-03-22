@@ -1,6 +1,7 @@
 import { ServerError } from "../errors.ts";
 import {
   AbstractDeviceAuthorizationFlow,
+  DeviceAuthorizationAccessTokenError,
   DeviceAuthorizationAccessTokenResult,
   DeviceAuthorizationFlowOptions,
   DeviceAuthorizationGrantContext,
@@ -22,7 +23,7 @@ export interface OIDCDeviceAuthorizationAccessTokenResult
 export interface OIDCDeviceAuthorizationModel extends DeviceAuthorizationModel {
   generateAccessToken: OAuth2GenerateAccessTokenFunction<
     DeviceAuthorizationGrantContext,
-    OIDCDeviceAuthorizationAccessTokenResult
+    OIDCDeviceAuthorizationAccessTokenResult | DeviceAuthorizationAccessTokenError
   >;
 
   /**
