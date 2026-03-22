@@ -168,13 +168,13 @@ export class HonoAuthorizationCodeFlow<
 
     initiateAuthorization: async (
       context: Context,
-    ): Promise<OIDCAuthorizationCodeInitiationResponse> => {
+    ): Promise<AuthorizationCodeInitiationResponse> => {
       return await this.initiateAuthorization(context.req.raw);
     },
 
     processAuthorization: async (
       context: Context,
-    ): Promise<OIDCAuthorizationCodeProcessResponse> => {
+    ): Promise<AuthorizationCodeProcessResponse> => {
       return await this.processAuthorization(
         context.req.raw.clone(),
         await this.#parseAuthorizationEndpointData(context),
@@ -183,7 +183,7 @@ export class HonoAuthorizationCodeFlow<
 
     handleAuthorizationEndpoint: async (
       context: Context,
-    ): Promise<OIDCAuthorizationCodeEndpointResponse> => {
+    ): Promise<AuthorizationCodeEndpointResponse> => {
       if (context.req.method === "GET") {
         // In a real implementation, you would render a login page
         // or consent page here for the user

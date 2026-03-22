@@ -2,6 +2,7 @@
 
 export { AuthorizationCodeFlowBuilder } from "./builders/authorization_code_builder.ts";
 export { ClientCredentialsFlowBuilder } from "./builders/client_credentials_builder.ts";
+export { DeviceAuthorizationFlowBuilder } from "./builders/device_authorization_builder.ts";
 export { OAuth2FlowBuilder } from "./builders/flow_builder.ts";
 export { OIDCAuthorizationCodeFlowBuilder } from "./builders/oidc_authorization_code_builder.ts";
 export { OIDCClientCredentialsFlowBuilder } from "./builders/oidc_client_credentials_builder.ts";
@@ -90,6 +91,26 @@ export type { OIDCClientCredentialsFlowOptions } from "./oidc/oidc_client_creden
 export { OIDCClientCredentialsFlow } from "./oidc/oidc_client_credentials.ts";
 export { OIDCMultipleFlows } from "./oidc/oidc_multiple_flows.ts";
 export type { OIDCFlow, OIDCFlowExtendedOptions, OIDCUserInfo } from "./oidc/types.ts";
+
+export type {
+  AbstractDeviceAuthorizationFlow,
+  DeviceAuthorizationAccessTokenError,
+  DeviceAuthorizationAccessTokenResult,
+  DeviceAuthorizationEndpointCodeResponse,
+  DeviceAuthorizationEndpointContext,
+  DeviceAuthorizationEndpointRequest,
+  DeviceAuthorizationEndpointResponse,
+  DeviceAuthorizationFlowOptions,
+  DeviceAuthorizationGrant,
+  DeviceAuthorizationGrantContext,
+  DeviceAuthorizationInitiationResponse,
+  DeviceAuthorizationModel,
+  DeviceAuthorizationProcessResponse,
+  DeviceAuthorizationTokenRequest,
+  GenerateDeviceCodeFunction,
+} from "./grants/device_authorization.ts";
+
+export { DeviceAuthorizationFlow } from "./grants/device_authorization.ts";
 
 //#endregion
 

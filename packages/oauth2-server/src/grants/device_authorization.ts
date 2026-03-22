@@ -25,14 +25,6 @@ import {
   OAuth2RefreshTokenRequest,
 } from "./flow.ts";
 
-export interface DeviceAuthorizationUser {
-  [key: string]: unknown;
-}
-
-export interface DeviceAuthorizationReqData {
-  [key: string]: unknown;
-}
-
 export interface DeviceAuthorizationGrant {
   /** The grant type identifier. */
   readonly grantType: "urn:ietf:params:oauth:grant-type:device_code";
@@ -74,7 +66,6 @@ export interface DeviceAuthorizationEndpointCodeResponse<
   C extends DeviceAuthorizationEndpointContext = DeviceAuthorizationEndpointContext,
 > {
   context: C;
-  user: DeviceAuthorizationUser;
   deviceCode: string;
   userCode: string;
   verificationEndpoint: string; // verificationUri
@@ -144,13 +135,11 @@ export interface GenerateDeviceCodeFunction<
       {
         deviceCode: string;
         userCode: string;
-        user: DeviceAuthorizationUser;
       } | undefined
     >
     | {
       deviceCode: string;
       userCode: string;
-      user: DeviceAuthorizationUser;
     }
     | undefined;
 }
@@ -219,8 +208,8 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
   readonly grantType = "urn:ietf:params:oauth:grant-type:device_code" as const;
   protected readonly model: DeviceAuthorizationModel;
 
-  protected authorizationEndpoint: string = "/authorize";
-  protected verificationEndpoint: string = "/verify";
+  protected authorizationEndpoint: string = "/device_authorization";
+  protected verificationEndpoint: string = "/verify_user_code";
 
   constructor(options: DeviceAuthorizationFlowOptions) {
     const { model, authorizationEndpoint, verificationEndpoint, ...flowOptions } = { ...options };
@@ -364,7 +353,6 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
       deviceCodeResponse: {
         context: context.context,
         scope: [...scope],
-        user: codeResult.user,
         deviceCode: codeResult.deviceCode,
         userCode: codeResult.userCode, // In a real implementation, you would generate a separate user code that is easier for the user to input, and associate it with the device code in your data store.
         verificationEndpoint: this.verificationEndpoint,
@@ -521,7 +509,7 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
     }
 
     // Validate client authentication credentials using the registered client authentication methods
-    const { clientId, clientSecret, error, method: clientAuthMethod } = await this
+    const { clientId, clientSecret, error } = await this
       .extractClientCredentials(
         request.clone(),
         this.clientAuthMethods,
@@ -531,23 +519,10 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
     // If the request contains client authentication credentials, validate them
     if (!error) {
       // If clientId is missing, return 401 error
-      if (!clientId || !clientSecret) {
+      if (!clientId) {
         return {
           success: false,
           error: new InvalidClientError("Invalid client credentials"),
-        };
-      }
-
-      if (
-        grantTypeInBody === "urn:ietf:params:oauth:grant-type:device_code" &&
-        clientAuthMethod === "none"
-      ) {
-        // If the client authentication method is "none", then PKCE verification is required for public clients (RFC 7636 §4.1.2).
-        return {
-          success: false,
-          error: new InvalidRequestError(
-            "Public clients must use PKCE with the device code grant",
-          ),
         };
       }
 
@@ -735,6 +710,24 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
       success: true,
       tokenResponse,
       grantType: context.grantType,
+    };
+  }
+}
+
+export class DeviceAuthorizationFlow extends AbstractDeviceAuthorizationFlow {
+  toOpenAPISecurityScheme() {
+    return {
+      [this.getSecuritySchemeName()]: {
+        type: "oauth2" as const,
+        description: this.getDescription(),
+        flows: {
+          deviceAuthorization: {
+            deviceAuthorizationUrl: this.getAuthorizationEndpoint(),
+            scopes: { ...(this.getScopes() || {}) },
+            tokenUrl: this.getTokenEndpoint(),
+          },
+        },
+      },
     };
   }
 }

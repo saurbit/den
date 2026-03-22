@@ -36,4 +36,11 @@ export {
   HonoOIDCClientCredentialsFlow,
   type HonoOIDCClientCredentialsFlowOptions,
 } from "./client_credentials.ts";
+export {
+  HonoDeviceAuthorizationFlow,
+  HonoDeviceAuthorizationFlowBuilder,
+  type HonoDeviceAuthorizationFlowBuilderOptions,
+  type HonoDeviceAuthorizationFlowOptions,
+  type HonoDeviceAuthorizationMethods,
+} from "./device_authorization.ts";
 export { type HonoOIDCFlow, HonoOIDCMultipleFlows } from "./oidc_multiple_flow.ts";
