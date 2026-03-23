@@ -2,11 +2,10 @@
 
 import { StrategyInternalError } from "@saurbit/oauth2";
 
-import { BearerTokenType } from "../oauth2_hono_adapter/mod.ts";
+import { BearerTokenType, HonoAuthorizationCodeFlowBuilder } from "@saurbit/hono-oauth2";
 import { HTTPException } from "hono/http-exception";
 import { html } from "hono/html";
 import { HTTPRateLimitException, verifyTokenFunction } from "./common.ts";
-import { HonoAuthorizationCodeFlowBuilder } from "../oauth2_hono_adapter/authorization_code.ts";
 
 export const authorizationCodeFlow = HonoAuthorizationCodeFlowBuilder
   .create({

@@ -3,23 +3,23 @@ import { HTTPException } from "hono/http-exception";
 import {
   ClientCredentialsFlow,
   ClientCredentialsFlowBuilder,
-  ClientCredentialsFlowOptions,
+  type ClientCredentialsFlowOptions,
   evaluateStrategy,
-  OAuth2FlowTokenResponse,
-  OIDCClientCredentialsFlowOptions,
+  type OAuth2FlowTokenResponse,
+  OIDCClientCredentialsFlow,
+  OIDCClientCredentialsFlowBuilder,
+  type OIDCClientCredentialsFlowOptions,
   StrategyInsufficientScopeError,
-  StrategyResult,
-  StrategyVerifyTokenFunction,
+  type StrategyResult,
+  type StrategyVerifyTokenFunction,
 } from "@saurbit/oauth2";
-import {
+import type {
   FailedAuthorizationAction,
   HonoAdapted,
   HonoMethods,
   HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
-import { OIDCClientCredentialsFlow } from "@saurbit/oauth2";
-import { OIDCClientCredentialsFlowBuilder } from "@saurbit/oauth2";
 
 //#region Types and Interfaces
 

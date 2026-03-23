@@ -1,35 +1,35 @@
-// oauth2_hono_adapter/authorization_code.ts
+// @saurbit/hono-oauth2/authorization_code.ts
 
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
-  AuthorizationCodeEndpointResponse,
+  type AuthorizationCodeEndpointResponse,
   AuthorizationCodeFlow,
-  AuthorizationCodeFlowOptions,
-  AuthorizationCodeInitiationResponse,
-  AuthorizationCodeProcessResponse,
-  AuthorizationCodeReqData,
+  AuthorizationCodeFlowBuilder,
+  type AuthorizationCodeFlowOptions,
+  type AuthorizationCodeInitiationResponse,
+  type AuthorizationCodeProcessResponse,
+  type AuthorizationCodeReqData,
   evaluateStrategy,
   InvalidRequestError,
-  OAuth2FlowTokenResponse,
-  OIDCAuthorizationCodeFlowOptions,
-  OIDCAuthorizationCodeInitiationResponse,
+  type OAuth2FlowTokenResponse,
+  type OIDCAuthorizationCodeEndpointResponse,
+  OIDCAuthorizationCodeFlow,
+  OIDCAuthorizationCodeFlowBuilder,
+  type OIDCAuthorizationCodeFlowOptions,
+  type OIDCAuthorizationCodeInitiationResponse,
+  type OIDCAuthorizationCodeProcessResponse,
   StrategyInsufficientScopeError,
-  StrategyResult,
-  StrategyVerifyTokenFunction,
+  type StrategyResult,
+  type StrategyVerifyTokenFunction,
 } from "@saurbit/oauth2";
-import {
+import type {
   FailedAuthorizationAction,
   HonoAdapted,
   HonoMethods,
   HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
-import { OIDCAuthorizationCodeFlow } from "@saurbit/oauth2";
-import { OIDCAuthorizationCodeProcessResponse } from "@saurbit/oauth2";
-import { OIDCAuthorizationCodeEndpointResponse } from "@saurbit/oauth2";
-import { AuthorizationCodeFlowBuilder } from "@saurbit/oauth2";
-import { OIDCAuthorizationCodeFlowBuilder } from "@saurbit/oauth2";
 
 //#region Types and Interfaces
 

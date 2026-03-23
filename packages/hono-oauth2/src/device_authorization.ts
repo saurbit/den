@@ -1,27 +1,27 @@
-// oauth2_hono_adapter/authorization_code.ts
+// @saurbit/hono-oauth2/device_authorization.ts
 
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
-  DeviceAuthorizationEndpointResponse,
+  type DeviceAuthorizationEndpointResponse,
   DeviceAuthorizationFlow,
-  DeviceAuthorizationFlowOptions,
-  DeviceAuthorizationProcessResponse,
+  DeviceAuthorizationFlowBuilder,
+  type DeviceAuthorizationFlowOptions,
+  type DeviceAuthorizationProcessResponse,
   evaluateStrategy,
   InvalidRequestError,
-  OAuth2FlowTokenResponse,
+  type OAuth2FlowTokenResponse,
   StrategyInsufficientScopeError,
-  StrategyResult,
-  StrategyVerifyTokenFunction,
+  type StrategyResult,
+  type StrategyVerifyTokenFunction,
 } from "@saurbit/oauth2";
-import {
+import type {
   FailedAuthorizationAction,
   HonoAdapted,
   HonoMethods,
   HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
-import { DeviceAuthorizationFlowBuilder } from "@saurbit/oauth2";
 
 //#region Types and Interfaces
 

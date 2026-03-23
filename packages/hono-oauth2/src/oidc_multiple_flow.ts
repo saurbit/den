@@ -1,8 +1,8 @@
 import {
   OAuth2Error,
   OAuth2Errors,
-  OAuth2FlowTokenResponse,
-  OIDCFlow,
+  type OAuth2FlowTokenResponse,
+  type OIDCFlow,
   OIDCMultipleFlows,
   StrategyError,
   StrategyInternalError,

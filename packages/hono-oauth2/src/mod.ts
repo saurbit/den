@@ -15,8 +15,6 @@ export type {
   OAuth2ServerEnv,
 } from "./types.ts";
 
-export { createAuthMiddleware } from "./utils.ts";
-
 export {
   HonoAuthorizationCodeFlow,
   HonoAuthorizationCodeFlowBuilder,

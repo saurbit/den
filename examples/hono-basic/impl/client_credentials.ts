@@ -1,6 +1,6 @@
 import { StrategyInternalError } from "@saurbit/oauth2";
 
-import { BearerTokenType, HonoClientCredentialsFlowBuilder } from "../oauth2_hono_adapter/mod.ts";
+import { BearerTokenType, HonoClientCredentialsFlowBuilder } from "@saurbit/hono-oauth2";
 import { HTTPException } from "hono/http-exception";
 import { verifyTokenFunction } from "./common.ts";
 

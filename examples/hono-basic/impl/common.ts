@@ -1,5 +1,5 @@
 import { Context, Env } from "hono";
-import { OAuth2ServerEnv } from "../oauth2_hono_adapter/mod.ts";
+import { OAuth2ServerEnv } from "@saurbit/hono-oauth2";
 import { StrategyVerifyTokenFunction } from "@saurbit/oauth2";
 import { HTTPException } from "hono/http-exception";
 

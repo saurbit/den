@@ -1,4 +1,4 @@
-import { HonoOIDCMultipleFlows } from "../oauth2_hono_adapter/mod.ts";
+import { HonoOIDCMultipleFlows } from "@saurbit/hono-oauth2";
 import { oidcAuthorizationCodeFlow } from "./oidc_authorization_code.ts";
 
 const ISSUER = "http://localhost:3000";
