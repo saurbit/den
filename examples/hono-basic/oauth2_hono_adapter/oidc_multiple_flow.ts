@@ -7,7 +7,7 @@ import {
   StrategyError,
   StrategyInternalError,
   StrategyResult,
-} from "@saurbit/oauth2-server";
+} from "@saurbit/oauth2";
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HonoAdapted, HonoMethods, OAuth2ServerEnv } from "./types.ts";
 import { HTTPException } from "hono/http-exception";

@@ -5,8 +5,8 @@ export type {
   StrategyVerifyTokenFunction,
   TokenType,
   TokenTypeValidationResponse,
-} from "@saurbit/oauth2-server";
-export { BearerTokenType } from "@saurbit/oauth2-server";
+} from "@saurbit/oauth2";
+export { BearerTokenType } from "@saurbit/oauth2";
 
 export type {
   FailedAuthorizationAction,

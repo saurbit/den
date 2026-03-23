@@ -9,7 +9,7 @@ import {
 import { swaggerUI } from "@hono/swagger-ui";
 import { oauth2Redirect } from "./swagger_ui/oauth2_redirect.ts";
 import { deviceAuthorizationFlow } from "./impl/device_authorization.ts";
-import { UnauthorizedClientError, UnsupportedGrantTypeError } from "@saurbit/oauth2-server";
+import { UnauthorizedClientError, UnsupportedGrantTypeError } from "@saurbit/oauth2";
 
 const app = new Hono();
 

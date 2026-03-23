@@ -1,4 +1,4 @@
-declare module "@saurbit/oauth2-server" {
+declare module "@saurbit/oauth2" {
   interface UserCredentials {
     username: string;
     level?: number;

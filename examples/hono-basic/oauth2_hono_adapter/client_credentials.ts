@@ -10,7 +10,7 @@ import {
   StrategyInsufficientScopeError,
   StrategyResult,
   StrategyVerifyTokenFunction,
-} from "@saurbit/oauth2-server";
+} from "@saurbit/oauth2";
 import {
   FailedAuthorizationAction,
   HonoAdapted,
@@ -18,8 +18,8 @@ import {
   HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
-import { OIDCClientCredentialsFlow } from "@saurbit/oauth2-server";
-import { OIDCClientCredentialsFlowBuilder } from "@saurbit/oauth2-server";
+import { OIDCClientCredentialsFlow } from "@saurbit/oauth2";
+import { OIDCClientCredentialsFlowBuilder } from "@saurbit/oauth2";
 
 //#region Types and Interfaces
 

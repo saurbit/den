@@ -1,4 +1,4 @@
-# @saurbit/oauth2-server
+# @saurbit/oauth2
 
 A framework-agnostic [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) authorization server
 implementation for [Deno](https://deno.land/).
@@ -19,7 +19,7 @@ Use `ClientCredentialsFlowBuilder` (or its counterparts for other grant types) t
 with your client lookup and token generation logic:
 
 ```ts
-import { ClientCredentialsFlowBuilder } from "@saurbit/oauth2-server";
+import { ClientCredentialsFlowBuilder } from "@saurbit/oauth2";
 
 const flow = new ClientCredentialsFlowBuilder({
   securitySchemeName: "clientCredentials",

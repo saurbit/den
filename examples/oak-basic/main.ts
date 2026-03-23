@@ -1,5 +1,5 @@
 import { Application, Router } from "@oak/oak";
-import { ClientCredentialsFlowBuilder } from "@saurbit/oauth2-server";
+import { ClientCredentialsFlowBuilder } from "@saurbit/oauth2";
 
 const flow = new ClientCredentialsFlowBuilder({
   securitySchemeName: "clientCredentials",

@@ -6,7 +6,7 @@ import type {
   StrategyOptions,
   StrategyResult,
   StrategyVerifyTokenFunction,
-} from "@saurbit/oauth2-server";
+} from "@saurbit/oauth2";
 
 export interface OAuth2ServerEnv extends Env {
   Variables: {

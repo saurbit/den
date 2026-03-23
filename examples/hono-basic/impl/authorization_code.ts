@@ -1,6 +1,6 @@
 // impl/authorization_code.ts
 
-import { StrategyInternalError } from "@saurbit/oauth2-server";
+import { StrategyInternalError } from "@saurbit/oauth2";
 
 import { BearerTokenType } from "../oauth2_hono_adapter/mod.ts";
 import { HTTPException } from "hono/http-exception";

@@ -9,14 +9,14 @@ import {
 } from "hono-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
 
-import { UnauthorizedClientError, UnsupportedGrantTypeError } from "@saurbit/oauth2-server";
+import { UnauthorizedClientError, UnsupportedGrantTypeError } from "@saurbit/oauth2";
 
 import { HtmlFormContent, oidcAuthorizationCodeFlow } from "./impl/oidc_authorization_code.ts";
 
 import { oidcMultipleFlows } from "./impl/oidc.ts";
 
 import { oauth2Redirect } from "./swagger_ui/oauth2_redirect.ts";
-import { AccessDeniedError } from "@saurbit/oauth2-server";
+import { AccessDeniedError } from "@saurbit/oauth2";
 import { HTTPRateLimitException } from "./impl/common.ts";
 
 const app = new Hono();

@@ -11,16 +11,16 @@ import {
   StrategyInsufficientScopeError,
   StrategyResult,
   StrategyVerifyTokenFunction,
-} from "@saurbit/oauth2-server";
+} from "@saurbit/oauth2";
 import {
   FailedAuthorizationAction,
   HonoAdapted,
   HonoOAuth2StrategyOptions,
   OAuth2ServerEnv,
 } from "./types.ts";
-import { OIDCDeviceAuthorizationFlowOptions } from "@saurbit/oauth2-server";
-import { OIDCDeviceAuthorizationFlowBuilder } from "@saurbit/oauth2-server";
-import { OIDCDeviceAuthorizationFlow } from "@saurbit/oauth2-server";
+import { OIDCDeviceAuthorizationFlowOptions } from "@saurbit/oauth2";
+import { OIDCDeviceAuthorizationFlowBuilder } from "@saurbit/oauth2";
+import { OIDCDeviceAuthorizationFlow } from "@saurbit/oauth2";
 import { HonoDeviceAuthorizationMethods } from "./device_authorization.ts";
 
 //#region Types and Interfaces

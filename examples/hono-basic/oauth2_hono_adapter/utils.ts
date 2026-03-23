@@ -4,11 +4,11 @@ import {
   evaluateStrategy,
   StrategyInternalError,
   StrategyVerifyTokenFunction,
-} from "@saurbit/oauth2-server";
+} from "@saurbit/oauth2";
 import { HonoStrategyOptions, OAuth2ServerEnv } from "./types.ts";
 
 /**
- * Hono adapter for the oauth2-server strategy.
+ * Hono adapter for the oauth2 strategy.
  */
 export function createAuthMiddleware<E extends Env = Env>(
   options: HonoStrategyOptions<E>,

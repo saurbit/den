@@ -191,7 +191,7 @@
           "jsr:@oak/oak@^17.2.0"
         ]
       },
-      "packages/oauth2-server": {
+      "packages/oauth2": {
         "dependencies": [
           "jsr:@std/assert@^1.0.19"
         ]
