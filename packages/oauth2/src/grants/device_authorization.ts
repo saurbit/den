@@ -110,7 +110,7 @@ export interface DeviceAuthorizationAccessTokenResult extends OAuth2AccessTokenR
   refreshToken?: string;
 
   /**
-   * For OpenID Connect, an ID token can also be returned from the token endpoint when exchanging the authorization code for tokens, and it should be included in the access token result so that it can be returned to the client in the token response.
+   * For OpenID Connect, an ID token can also be returned from the token endpoint when exchanging the device code for tokens, and it should be included in the access token result so that it can be returned to the client in the token response.
    * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
    */
   idToken?: string;
@@ -161,19 +161,12 @@ export interface DeviceAuthorizationModel extends
     DeviceAuthorizationAccessTokenResult | DeviceAuthorizationAccessTokenError
   > {
   /**
-   * Retrieve and validate the client for an authorization code or refresh token request.
+   * Retrieve and validate the client for a device authorization or refresh token request.
    *
-   * When `tokenRequest.grantType === "authorization_code"`, implementations MUST:
-   * 1. Verify the `code` is valid and has not already been used (one-time use).
-   * 2. Verify the `clientId` matches the client that requested the code.
-   * 3. If `redirectUri` is present, verify it is identical to the `redirect_uri`
-   *    used in the original authorization request (RFC 6749 §4.1.3). Omitting
-   *    this check enables authorization code injection attacks.
-   * 4. If `codeVerifier` is present, verify it against the stored `code_challenge`
-   *    using the stored `code_challenge_method` (RFC 7636 §4.6).
-   *
-   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.3
-   * @see https://datatracker.ietf.org/doc/html/rfc7636#section-4.6
+   * When `tokenRequest.grantType === "urn:ietf:params:oauth:grant-type:device_code"`, implementations MUST:
+   * 1. Verify the `deviceCode` is valid and has not already been used (one-time use).
+   * 2. Verify the `clientId` matches the client that requested the device code.
+   * 3. Optionally, verify the `clientSecret` if the client is confidential.
    */
   getClient: OAuth2GetClientFunction<DeviceAuthorizationTokenRequest | OAuth2RefreshTokenRequest>;
 
@@ -573,7 +566,7 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
         };
       }
 
-      // validate that client is allowed to use authorization code grant type
+      // validate that client is allowed to use device authorization grant type
       if (!client.grants || !client.grants.includes(this.grantType)) {
         return {
           success: false,

@@ -75,8 +75,8 @@ export class HonoOIDCDeviceAuthorizationFlow<
     ): Promise<DeviceAuthorizationEndpointResponse> => {
       if (context.req.method === "POST") {
         // In a real implementation, you would authenticate the user here,
-        // and if authentication is successful, generate an authorization code,
-        // and redirect the user to the redirect_uri with the code and state as query parameters.
+        // and if authentication is successful, generate a device code,
+        // and return it to the client in the response.
 
         const result = await this.hono().processAuthorization(context);
 

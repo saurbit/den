@@ -206,12 +206,6 @@ export {
 
 //#region Types
 
-export type {
-  OAuth2AuthorizationCode,
-  OAuth2Client,
-  OAuth2Model,
-  OAuth2Scope,
-  OAuth2Token,
-} from "./types.ts";
+export type { OAuth2Client, OAuth2Token } from "./types.ts";
 
 //#endregion

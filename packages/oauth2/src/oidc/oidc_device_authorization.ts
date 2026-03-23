@@ -14,7 +14,7 @@ import { OIDCFlow, OIDCFlowExtendedOptions, OIDCUserInfo } from "./types.ts";
 export interface OIDCDeviceAuthorizationAccessTokenResult
   extends DeviceAuthorizationAccessTokenResult {
   /**
-   * For OpenID Connect, an ID token can also be returned from the token endpoint when exchanging the authorization code for tokens, and it should be included in the access token result so that it can be returned to the client in the token response.
+   * For OpenID Connect, an ID token can also be returned from the token endpoint when exchanging the device code for tokens, and it should be included in the access token result so that it can be returned to the client in the token response.
    * @see https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
    */
   idToken: string;
@@ -233,7 +233,9 @@ export class OIDCDeviceAuthorizationFlow extends AbstractDeviceAuthorizationFlow
       } else {
         return {
           success: false,
-          error: new ServerError("ID Token is required for OpenID Connect authorization code flow"),
+          error: new ServerError(
+            "ID Token is required for OpenID Connect device authorization flow",
+          ),
         };
       }
     }
