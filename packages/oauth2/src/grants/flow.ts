@@ -160,26 +160,6 @@ export abstract class OAuth2Flow {
   protected description?: string;
   protected scopes?: Record<string, string>;
 
-  /*
-  protected jwksPublicKeyTtl?: number;
-  protected jwksRotationIntervalMs?: number;
-  protected jwtAuthority?: JwtAuthority;
-  */
-
-  /*
-    protected options: OAuth2AuthOptions;
-
-    protected logger?: ILogger;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected jwksRoute?: IJWKSRoute<any>;
-    protected jwksKeyStore?: JwksKeyStore;
-
-    protected jwksRotationTimestampStore?: JwksRotationTimestampStore;
-
-    protected jwksRotator?: JwksRotator;
-    */
-
   constructor(options?: OAuth2FlowOptions) {
     this._tokenType = options?.tokenType || new BearerTokenType();
 
@@ -209,15 +189,6 @@ export abstract class OAuth2Flow {
     if (options?.accessTokenLifetime) {
       this.accessTokenLifetime = options.accessTokenLifetime;
     }
-    //this.options = options?.options ? { ...options.options } : {};
-
-    //this.jwksRoute = options?.jwksRoute;
-    //this.jwksKeyStore = options?.jwksOptions?.keyStore;
-
-    //this.jwksPublicKeyTtl = options?.jwksOptions?.ttl;
-    //this.jwksRotationIntervalMs = options?.jwksOptions?.rotation?.intervalMs;
-
-    //this.jwksRotationTimestampStore = options?.jwksOptions?.rotation?.timestampStore;
   }
 
   protected async extractClientCredentials(
@@ -279,71 +250,6 @@ export abstract class OAuth2Flow {
     }
     return this;
   }
-
-  /*
-    protected getJwtAuthority(): JwtAuthority | undefined {
-        if (this.jwtAuthority) return this.jwtAuthority;
-        if (this.jwksRoute || this.jwksKeyStore || this.options.useAccessTokenJwks) {
-            this.jwtAuthority = new JwtAuthority(this.jwksKeyStore || new InMemoryKeyStore(), this.jwksPublicKeyTtl);
-        }
-        return this.jwtAuthority;
-    }
-
-    async generateKeyPair(): Promise<void> {
-        return await this.getJwtAuthority()?.generateKeyPair();
-    }
-    */
-
-  /*
-    protected getJwksRotator(): JwksRotator | undefined {
-        if (this.jwksRotator) return this.jwksRotator;
-        const jwtAuthority = this.getJwtAuthority();
-        if (jwtAuthority && this.jwksRotationIntervalMs) {
-            this.jwksRotator = new JwksRotator({
-                keyGenerator: jwtAuthority,
-                rotationIntervalMs: this.jwksRotationIntervalMs,
-                rotatorKeyStore: this.jwksRotationTimestampStore || new InMemoryKeyStore(),
-                logger: this.logger,
-            });
-        }
-        return this.jwksRotator;
-    }
-    */
-
-  /*
-    protected createJwksEndpoint(t: KaapiTools) {
-        const jwtAuthority = this.getJwtAuthority();
-
-        if (this.jwksRoute && jwtAuthority) {
-            t.route({
-                path: this.jwksRoute.path,
-                method: 'GET',
-                options: {
-                    plugins: {
-                        kaapi: {
-                            docs: false,
-                        },
-                    },
-                },
-                handler: async (req, h) => {
-                    const jwks = await jwtAuthority.getJwksEndpointResponse();
-
-                    if (this.jwksRoute?.handler) {
-                        return this.jwksRoute.handler(
-                            {
-                                jwks,
-                            },
-                            req,
-                            h
-                        );
-                    }
-
-                    return jwks;
-                },
-            });
-        }
-    }
-    */
 
   getTokenEndpointAuthMethods(): TokenEndpointAuthMethod[] {
     const result = Object.keys(this._clientAuthMethods)
