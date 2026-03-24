@@ -211,19 +211,30 @@ export const oidcAuthorizationCodeFlow = HonoOIDCAuthorizationCodeFlowBuilder.cr
     });
     // In a real implementation, you would generate a secure token here
     if (code.startsWith("authcode-") && Array.isArray(client.metadata?.newScope)) {
+      /**
+       * @see {@link https://www.rfc-editor.org/rfc/rfc7519#section-4.1}
+       */
+      const registeredClaims = {
+        exp: Math.floor(Date.now() / 1000) + accessTokenLifetime, // Example expiration time
+        iat: Math.floor(Date.now() / 1000), // Issued at time
+        nbf: Math.floor(Date.now() / 1000), // Not before time
+        iss: "http://localhost:3000", // Example issuer
+        aud: client.id, // Example audience
+        jti: crypto.randomUUID(), // Example JWT ID
+        sub: "1234567890", // a DB primary key or UUID for the user associated with the token
+      };
       const { token: accessToken } = await jwksAuthority.sign({
         username: "admin",
         level: 51,
         scope: client.metadata.newScope,
-        exp: Math.floor(Date.now() / 1000) + accessTokenLifetime, // Example expiration time
-        iat: Math.floor(Date.now() / 1000), // Issued at time
+        ...registeredClaims
       });
       return {
         accessToken: accessToken,
         scope: client.metadata?.newScope,
         refreshToken: "valid-refresh-token-" + client.metadata?.newScope.join(","),
         idToken:
-          (await jwksAuthority.sign({ sub: "1234567890", name: "John Doe", admin: true })).token, // Example ID token payload
+          (await jwksAuthority.sign({ name: "John Doe", admin: true, ...registeredClaims })).token, // Example ID token payload
       };
     }
   })
@@ -242,7 +253,7 @@ export const oidcAuthorizationCodeFlow = HonoOIDCAuthorizationCodeFlowBuilder.cr
         username: "admin",
         level: 52,
         scope: context.refreshToken.slice("valid-refresh-token-".length).split(","),
-        exp: Math.floor(Date.now() / 1000) + 10, // Example expiration time
+        exp: Math.floor(Date.now() / 1000) + context.accessTokenLifetime, // Example expiration time
         iat: Math.floor(Date.now() / 1000), // Issued at time
       });
       return {
