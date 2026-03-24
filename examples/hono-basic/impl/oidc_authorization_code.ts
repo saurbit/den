@@ -227,7 +227,7 @@ export const oidcAuthorizationCodeFlow = HonoOIDCAuthorizationCodeFlowBuilder.cr
         username: "admin",
         level: 51,
         scope: client.metadata.newScope,
-        ...registeredClaims
+        ...registeredClaims,
       });
       return {
         accessToken: accessToken,
@@ -251,7 +251,7 @@ export const oidcAuthorizationCodeFlow = HonoOIDCAuthorizationCodeFlowBuilder.cr
     ) {
       const { token: accessToken } = await jwksAuthority.sign({
         username: "admin",
-        level: 52,
+        level: 51,
         scope: context.refreshToken.slice("valid-refresh-token-".length).split(","),
         exp: Math.floor(Date.now() / 1000) + context.accessTokenLifetime, // Example expiration time
         iat: Math.floor(Date.now() / 1000), // Issued at time
@@ -306,7 +306,11 @@ export const oidcAuthorizationCodeFlow = HonoOIDCAuthorizationCodeFlowBuilder.cr
     throw new HTTPException(401, {
       message,
     });
-  }).build();
+  })
+  .setOpenIdConfiguration({
+    claims_supported: ["sub", "aud", "iss", "exp", "iat", "nbf", "name"],
+  })
+  .build();
 
 export const HtmlFormContent = (props: {
   errorMessage?: string;
