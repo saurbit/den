@@ -185,7 +185,7 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
    * of all registered flows. Array-valued fields (e.g. `grant_types_supported`) are
    * merged and deduplicated. Static overrides set via `openidConfiguration` take
    * precedence over flow-derived values.
-   * 
+   *
    * @param req - Optional request object used to determine the full base URL for
    *   resolving relative endpoint paths. If omitted, the origin is derived from
    *   `discoveryUrl`.

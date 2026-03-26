@@ -1,23 +1,76 @@
+/**
+ * @module
+ *
+ * Implements the `client_secret_jwt` client authentication method, where the
+ * client authenticates using a JWT signed with a shared secret (HMAC).
+ * The JWT is sent as a `client_assertion` in the request body.
+ *
+ * JWT decoding and verification logic is injected via the constructor to avoid
+ * a hard dependency on any particular JWT library.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc7523
+ * @see https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+ */
+
 import { JwtDecode, JwtPayload, JwtVerify } from "../utils/jwt_types.ts";
 import { ClientAuthMethod, ClientAuthMethodResponse } from "./types.ts";
 
+/**
+ * HMAC signing algorithms supported by the `client_secret_jwt` authentication method.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc7518#section-3.2
+ */
 export enum ClientSecretJwtAlgorithms {
+  /** HMAC using SHA-256. */
   HS256 = "HS256",
+  /** HMAC using SHA-384. */
   HS384 = "HS384",
+  /** HMAC using SHA-512. */
   HS512 = "HS512",
 }
 
+/**
+ * {@link ClientAuthMethod} implementation for the `client_secret_jwt` authentication method.
+ *
+ * The client creates a JWT signed with its client secret using an HMAC algorithm and
+ * sends it as a `client_assertion` parameter in the token request body. The server
+ * decodes the assertion to identify the client, then retrieves the client secret via
+ * the {@link ClientSecretJwt.getClientSecret} handler to verify the signature.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc7523
+ */
 export class ClientSecretJwt implements ClientAuthMethod {
+  /**
+   * Convenience reference to the {@link ClientSecretJwtAlgorithms} enum,
+   * allowing callers to reference algorithms without a separate import.
+   *
+   * @example
+   * ```ts
+   * jwt.addAlgorithm(ClientSecretJwt.algo.HS384);
+   * ```
+   */
   static algo = ClientSecretJwtAlgorithms;
 
+  /**
+   * The identifier for this authentication method.
+   * Always `"client_secret_jwt"`.
+   */
   get method(): "client_secret_jwt" {
     return "client_secret_jwt";
   }
 
+  /**
+   * Whether the client secret is optional for this method.
+   * Always `false` - a client secret is required to verify the JWT assertion.
+   */
   get secretIsOptional(): boolean {
     return false;
   }
 
+  /**
+   * The list of accepted HMAC signing algorithms.
+   * Defaults to `[HS256]` if no algorithms have been added via {@link ClientSecretJwt.addAlgorithm}.
+   */
   get algorithms(): ClientSecretJwtAlgorithms[] {
     return this.#algorithms.length ? this.#algorithms : [ClientSecretJwtAlgorithms.HS256];
   }
@@ -42,6 +95,13 @@ export class ClientSecretJwt implements ClientAuthMethod {
    */
   #jwtVerify: JwtVerify;
 
+  /**
+   * Creates a new `ClientSecretJwt` instance.
+   *
+   * @param jwtDecode - A function that decodes a JWT without verifying its signature,
+   *   used to extract the `aud` claim to identify the client before looking up its secret.
+   * @param jwtVerify - A function that verifies a JWT using a symmetric key.
+   */
   constructor(
     jwtDecode: JwtDecode,
     jwtVerify: JwtVerify,
@@ -51,6 +111,12 @@ export class ClientSecretJwt implements ClientAuthMethod {
     this.#jwtVerify = jwtVerify;
   }
 
+  /**
+   * Adds an HMAC algorithm to the list of accepted signing algorithms.
+   * Duplicate entries are ignored. The list is kept sorted.
+   *
+   * @param algo - The algorithm to accept.
+   */
   addAlgorithm(algo: ClientSecretJwtAlgorithms): this {
     if (!this.#algorithms.includes(algo)) {
       this.#algorithms.push(algo);
@@ -59,6 +125,15 @@ export class ClientSecretJwt implements ClientAuthMethod {
     return this;
   }
 
+  /**
+   * Registers the handler used to retrieve the client secret for JWT signature verification.
+   *
+   * The handler receives the client ID (from the `aud` claim), the decoded JWT payload,
+   * and the raw client assertion string. It should return the client's secret as a string
+   * or `Uint8Array`, or `null` if the client is not found.
+   *
+   * @param handler - An async function that returns the client secret or `null`.
+   */
   getClientSecret(
     handler: (
       clientId: string,
@@ -70,6 +145,21 @@ export class ClientSecretJwt implements ClientAuthMethod {
     return this;
   }
 
+  /**
+   * Extracts and verifies the client assertion JWT from the request body.
+   *
+   * Looks for `client_assertion_type` set to
+   * `"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"` and a
+   * `client_assertion` JWT string. The `aud` claim is used as the `client_id`.
+   * The JWT signature is verified using the secret returned by the
+   * {@link ClientSecretJwt.getClientSecret} handler.
+   *
+   * Supports `application/x-www-form-urlencoded` and `application/json` content types.
+   *
+   * @param req - The incoming HTTP request.
+   * @returns The extracted client credentials, or `{ hasAuthMethod: false }` if the
+   *   request does not contain a valid JWT client assertion.
+   */
   async extractClientCredentials(req: Request): Promise<ClientAuthMethodResponse> {
     const res: ClientAuthMethodResponse = {
       hasAuthMethod: false,
