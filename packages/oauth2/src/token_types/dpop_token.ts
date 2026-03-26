@@ -54,7 +54,7 @@ export class DPoPTokenType implements TokenType {
   /**
    * Returns the DPoP-related metadata to include in the OpenID Connect discovery document.
    */
-  get configuration() {
+  get configuration(): { dpop_signing_alg_values_supported: string[]; require_dpop: boolean } {
     return {
       dpop_signing_alg_values_supported: ["ES256"],
       require_dpop: true,
