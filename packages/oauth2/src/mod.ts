@@ -135,13 +135,7 @@ export type { TokenType, TokenTypeValidationResponse } from "./token_types/types
 
 //#region Utilities
 
-export type {
-  JwkVerify,
-  JwtDecode,
-  JwtPayload,
-  JwtVerifier,
-  JwtVerify,
-} from "./utils/jwt_types.ts";
+export type { JwkVerify, JwtDecode, JwtPayload, JwtVerify } from "./utils/jwt_types.ts";
 export {
   createInMemoryReplayStore,
   InMemoryReplayStore,
@@ -199,6 +193,6 @@ export {
 
 //#region Types
 
-export type { OAuth2Client, OAuth2Token } from "./types.ts";
+export type { OAuth2Client } from "./types.ts";
 
 //#endregion

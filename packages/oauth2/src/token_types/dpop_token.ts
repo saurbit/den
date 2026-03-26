@@ -2,27 +2,58 @@ import { JwkVerify } from "../utils/jwt_types.ts";
 import { InMemoryReplayStore, ReplayDetector } from "../utils/replay_store.ts";
 import type { TokenType, TokenTypeValidationResponse } from "./types.ts";
 
+/**
+ * A custom handler for validating a DPoP-bound access token on a protected resource endpoint.
+ *
+ * @param request - The incoming HTTP request containing the `DPoP` proof header.
+ * @param token - The DPoP-bound access token extracted from the `Authorization` header.
+ * @param tokenLifetime - The maximum acceptable age of the DPoP proof in seconds.
+ * @returns A validation response indicating whether the proof and token are valid.
+ */
 export type DPoPTokenTypeValidation = (
   request: Request,
   token: string,
   tokenLifetime: number,
 ) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
 
+/**
+ * A custom handler for validating a DPoP proof on a token endpoint request,
+ * before client credentials are checked.
+ *
+ * @param req - The incoming token endpoint HTTP request containing the `DPoP` proof header.
+ * @param tokenLifetime - The maximum acceptable age of the DPoP proof in seconds.
+ * @returns A validation response indicating whether the proof is valid.
+ */
 export type DPoPTokenTypeRequestValidation = (
   req: Request,
   tokenLifetime: number,
 ) => TokenTypeValidationResponse | Promise<TokenTypeValidationResponse>;
 
+/**
+ * {@link TokenType} implementation for the DPoP (Demonstration of Proof-of-Possession) token scheme.
+ *
+ * Validates DPoP proofs on both the token endpoint and protected resource endpoints,
+ * and detects replayed JTI claims using a {@link ReplayDetector}.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc9449
+ */
 export class DPoPTokenType implements TokenType {
   #handler: DPoPTokenTypeValidation;
   #tokenRequestHandler: DPoPTokenTypeRequestValidation;
   #tokenLifetime: number = 300;
   #replayDetector: ReplayDetector;
 
+  /**
+   * The token type prefix used in the `Authorization` header and `token_type` response field.
+   * Always `"DPoP"`.
+   */
   get prefix(): "DPoP" {
     return "DPoP";
   }
 
+  /**
+   * Returns the DPoP-related metadata to include in the OpenID Connect discovery document.
+   */
   get configuration() {
     return {
       dpop_signing_alg_values_supported: ["ES256"],
@@ -32,6 +63,13 @@ export class DPoPTokenType implements TokenType {
 
   #jwkVerify: JwkVerify;
 
+  /**
+   * Creates a new `DPoPTokenType` instance.
+   *
+   * @param jwkVerify - A function that verifies a DPoP proof JWT against a JWK Set.
+   * @param replayDetector - An optional replay detector for JTI tracking.
+   *   Defaults to an {@link InMemoryReplayStore}.
+   */
   constructor(
     jwkVerify: JwkVerify,
     replayDetector?: ReplayDetector,
@@ -48,7 +86,6 @@ export class DPoPTokenType implements TokenType {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async _handleDefault(
     req: Request,
     tokenLifetime: number,
@@ -93,6 +130,12 @@ export class DPoPTokenType implements TokenType {
     }
   }
 
+  /**
+   * Replaces the replay detector used for JTI tracking.
+   * Use this to provide a distributed store (e.g. Redis) in multi-process deployments.
+   *
+   * @param value - The replay detector to use.
+   */
   setReplayDetector(value: ReplayDetector): this {
     this.#replayDetector = value;
     return this;
@@ -107,20 +150,44 @@ export class DPoPTokenType implements TokenType {
     return this;
   }
 
+  /**
+   * Overrides the default DPoP proof validation handler for token endpoint requests.
+   *
+   * @param handler - A custom {@link DPoPTokenTypeRequestValidation} function.
+   */
   validateTokenRequest(handler: DPoPTokenTypeRequestValidation): this {
     this.#tokenRequestHandler = handler;
     return this;
   }
 
+  /**
+   * Overrides the default DPoP proof validation handler for protected resource requests.
+   *
+   * @param handler - A custom {@link DPoPTokenTypeValidation} function.
+   */
   validate(handler: DPoPTokenTypeValidation): this {
     this.#handler = handler;
     return this;
   }
 
+  /**
+   * Validates the DPoP proof on an incoming token endpoint request.
+   * Called before client credentials are verified.
+   *
+   * @param req - The incoming token endpoint HTTP request.
+   * @returns A validation response indicating whether the DPoP proof is valid.
+   */
   async isValidTokenRequest(req: Request): Promise<TokenTypeValidationResponse> {
     return await this.#tokenRequestHandler(req, this.#tokenLifetime);
   }
 
+  /**
+   * Validates the DPoP proof on an incoming protected resource request.
+   *
+   * @param req - The incoming HTTP request.
+   * @param token - The DPoP-bound access token extracted from the `Authorization` header.
+   * @returns A validation response indicating whether the proof and token are valid.
+   */
   async isValid(req: Request, token: string): Promise<TokenTypeValidationResponse> {
     return await this.#handler(req, token, this.#tokenLifetime);
   }

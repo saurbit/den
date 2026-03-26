@@ -1,4 +1,4 @@
-export type { JwkVerify, JwtDecode, JwtPayload, JwtVerifier, JwtVerify } from "@saurbit/oauth2";
+export type { JwkVerify, JwtDecode, JwtPayload, JwtVerify } from "@saurbit/oauth2";
 
 export { JoseJwksAuthority } from "./jose_jwks_authority.ts";
 
@@ -11,7 +11,9 @@ export { decodeJwt, verifyJwk, verifyJwt } from "./methods.ts";
 export type {
   JwksKeyStore,
   JwksRotationTimestampStore,
+  JwtAuthority,
   JwtSigner,
+  JwtVerifier,
   KeyGenerator,
   RawKey,
   RSA,

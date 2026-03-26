@@ -1,5 +1,4 @@
 import type { JWTPayload } from "jose";
-import type { JwtVerifier } from "@saurbit/oauth2";
 
 export interface RSA {
   kty: "RSA";
@@ -57,6 +56,24 @@ export interface KeyGenerator {
 
 export interface JwtSigner {
   sign(payload: JWTPayload): Promise<{ token: string; kid: string }>;
+}
+
+/**
+ * An object capable of verifying a JWT and returning its typed payload.
+ *
+ * Implement this interface to plug in a custom JWT verification strategy
+ * (e.g. backed by a JWKS endpoint, a local key store, or a third-party library).
+ */
+export interface JwtVerifier {
+  /**
+   * Verifies the given JWT and returns its decoded payload.
+   *
+   * @template P - The expected shape of the JWT payload. Defaults to {@link JWTPayload}.
+   * @param token - The compact serialized JWT string to verify.
+   * @returns The verified and decoded payload.
+   * @throws If the token is invalid, expired, or cannot be verified.
+   */
+  verify<P extends JWTPayload = JWTPayload>(token: string): Promise<P>;
 }
 
 export interface JwtAuthority extends JwtVerifier, JwtSigner {

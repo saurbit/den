@@ -191,7 +191,7 @@ export class JoseJwksAuthority implements JwtAuthority {
 
     // additional checks hardening security
     if ("jwk" in protectedHeader) {
-      throw new Error("Unexpected JWK in header — potential forgery attempt");
+      throw new Error("Unexpected JWK in header - potential forgery attempt");
     }
     if (protectedHeader.typ && protectedHeader.typ.toLowerCase() !== "jwt") {
       throw new Error(`Unexpected typ: ${protectedHeader.typ}`);
