@@ -1,20 +1,18 @@
-// TODO: multiple flows for OpenID Connect.
-// ---
-// It basically have a list of flows and
-// a method "token()" that will check the grant type
-// and call the appropriate flow's token method.
-// The refresh token handler will be tried for all flows,
-// and if one of them can handle it, it will be used.
-// ---
-// The token verification will also be tried for all flows,
-// and if one of them can handle it, it will be used.
-// ---
-// This allows for a flexible implementation that can support multiple OpenID Connect flows
-// (e.g., authorization code, client credentials, etc.) in a single server.
-// So the order of the flows is important,
-// and the first one that can handle the request will be used.
-// A method for the openid configuration endpoint will also be needed,
-// which will return the supported flows and their configuration.
+/**
+ * @module
+ *
+ * Provides {@link OIDCMultipleFlows}, a composite OIDC flow that aggregates multiple
+ * individual flows (e.g. Authorization Code, Client Credentials, Device Authorization)
+ * behind a single token endpoint, token verification method, and OpenID Connect
+ * discovery document.
+ *
+ * Grant type dispatch: `token()` inspects the incoming request and delegates to the
+ * first flow that accepts it. Refresh token and token verification are tried against
+ * all registered flows in order.
+ *
+ * The order of flows passed to the constructor matters: the first flow able to
+ * handle a request wins.
+ */
 
 import { OAuth2Error, OAuth2Errors } from "../errors.ts";
 import { OAuth2FlowTokenResponse } from "../grants/flow.ts";
@@ -22,6 +20,21 @@ import { StrategyError, StrategyInternalError, StrategyResult } from "../strateg
 import { getOriginFromUrl, normalizeUrl } from "../utils/url_tools.ts";
 import { OIDCFlow } from "./types.ts";
 
+/**
+ * Aggregates multiple OIDC flows into a single handler that exposes a unified
+ * token endpoint, token verification, and OpenID Connect discovery document.
+ *
+ * @template TFlow - The concrete OIDC flow type. Defaults to {@link OIDCFlow}.
+ *
+ * @example
+ * ```ts
+ * const flows = new OIDCMultipleFlows({
+ *   securitySchemeName: "oidc",
+ *   discoveryUrl: "/.well-known/openid-configuration",
+ *   flows: [authorizationCodeFlow, clientCredentialsFlow],
+ * });
+ * ```
+ */
 export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
   protected flows: TFlow[];
   protected discoveryUrl: string;
@@ -31,6 +44,18 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
   protected securitySchemeName: string;
   protected description?: string;
 
+  /**
+   * Creates a new `OIDCMultipleFlows` instance.
+   *
+   * @param options.flows - Ordered list of OIDC flows to delegate to.
+   * @param options.discoveryUrl - URL of the OpenID Connect discovery document
+   *   (e.g. `"/.well-known/openid-configuration"`).
+   * @param options.securitySchemeName - Name of the OpenAPI security scheme entry.
+   * @param options.jwksEndpoint - URL of the JWKS endpoint. Defaults to `"/jwks"`.
+   * @param options.tokenEndpoint - URL of the token endpoint. Defaults to `"/token"`.
+   * @param options.openidConfiguration - Optional overrides merged into the discovery document.
+   * @param options.description - Optional human-readable description for the OpenAPI security scheme.
+   */
   constructor(
     {
       flows,
@@ -59,18 +84,35 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
     if (tokenEndpoint) this.tokenEndpoint = tokenEndpoint;
   }
 
+  /**
+   * Returns the URL of the OpenID Connect discovery document.
+   */
   getDiscoveryUrl(): string {
     return this.discoveryUrl;
   }
 
+  /**
+   * Returns the OpenAPI security scheme name for this set of flows.
+   */
   getSecuritySchemeName(): string {
     return this.securitySchemeName;
   }
 
+  /**
+   * Returns the optional human-readable description for the OpenAPI security scheme.
+   */
   getDescription(): string | undefined {
     return this.description;
   }
 
+  /**
+   * Handles an incoming token request by trying each registered flow in order.
+   * The first flow that returns a successful result is used.
+   * If no flow succeeds, returns a combined error from all flows.
+   *
+   * @param request - The incoming token endpoint HTTP request.
+   * @returns The token response from the first matching flow, or a failure with all errors.
+   */
   async token(request: Request): Promise<OAuth2FlowTokenResponse> {
     const errors: OAuth2Error[] = [];
     for (const flow of this.flows) {
@@ -85,6 +127,14 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
       : { success: false, error: new OAuth2Error("No flows available") };
   }
 
+  /**
+   * Verifies an access token by trying each registered flow in order.
+   * The first flow that successfully verifies the token is used.
+   * If no flow succeeds, returns a combined error from all flows.
+   *
+   * @param request - The incoming HTTP request containing the `Authorization` header.
+   * @returns The strategy result from the first flow that accepts the token, or a failure.
+   */
   async verifyToken(request: Request): Promise<StrategyResult> {
     const errors: StrategyError[] = [];
     for (const flow of this.flows) {
@@ -99,12 +149,24 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
       : { success: false, error: new StrategyInternalError("No flows available") };
   }
 
+  /**
+   * Returns the OpenAPI path item security requirement object for this set of flows.
+   *
+   * @param scopes - Optional list of required scopes.
+   * @returns An object keyed by the security scheme name with the required scopes.
+   */
   toOpenAPIPathItem(scopes?: string[]): Record<string, string[]> {
     return {
       [this.getSecuritySchemeName()]: scopes || [],
     };
   }
 
+  /**
+   * Returns the OpenAPI security scheme definition for this set of flows.
+   * Uses the `openIdConnect` scheme type pointing to the discovery URL.
+   *
+   * @returns An object keyed by the security scheme name with the scheme definition.
+   */
   toOpenAPISecurityScheme(): Record<
     string,
     { type: "openIdConnect"; description?: string; openIdConnectUrl: string }
@@ -119,10 +181,16 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
   }
 
   /**
-   * Retrieves the OpenID Connect discovery configuration.
-   * @param req - Optional request object to help determine the full URL for relative endpoints in the discovery document. If not provided, relative endpoints will be resolved against the discovery URL's origin.
-   * @returns The OpenID Connect discovery configuration.
-   * @link https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+   * Retrieves the OpenID Connect discovery configuration by merging the configurations
+   * of all registered flows. Array-valued fields (e.g. `grant_types_supported`) are
+   * merged and deduplicated. Static overrides set via `openidConfiguration` take
+   * precedence over flow-derived values.
+   * 
+   * @param req - Optional request object used to determine the full base URL for
+   *   resolving relative endpoint paths. If omitted, the origin is derived from
+   *   `discoveryUrl`.
+   * @returns The merged OpenID Connect discovery document.
+   * @see https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
    */
   getDiscoveryConfiguration(req?: Request): Record<string, string | string[] | undefined> {
     let fullUrl: string | undefined;
