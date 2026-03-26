@@ -708,7 +708,20 @@ export abstract class AbstractDeviceAuthorizationFlow extends OAuth2Flow
 }
 
 export class DeviceAuthorizationFlow extends AbstractDeviceAuthorizationFlow {
-  toOpenAPISecurityScheme() {
+  toOpenAPISecurityScheme(): Record<
+    string,
+    {
+      type: "oauth2";
+      description?: string;
+      flows: {
+        deviceAuthorization: {
+          deviceAuthorizationUrl: string;
+          scopes: Record<string, string>;
+          tokenUrl: string;
+        };
+      };
+    }
+  > {
     return {
       [this.getSecuritySchemeName()]: {
         type: "oauth2" as const,

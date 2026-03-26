@@ -325,7 +325,7 @@ export abstract class OAuth2Flow {
     });
   }
 
-  toOpenAPIPathItem(scopes?: string[]) {
+  toOpenAPIPathItem(scopes?: string[]): Record<string, string[]> {
     return {
       [this.getSecuritySchemeName()]: scopes || [],
     };

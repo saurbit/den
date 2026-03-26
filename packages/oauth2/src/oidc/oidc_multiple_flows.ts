@@ -99,13 +99,16 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
       : { success: false, error: new StrategyInternalError("No flows available") };
   }
 
-  toOpenAPIPathItem(scopes?: string[]) {
+  toOpenAPIPathItem(scopes?: string[]): Record<string, string[]> {
     return {
       [this.getSecuritySchemeName()]: scopes || [],
     };
   }
 
-  toOpenAPISecurityScheme() {
+  toOpenAPISecurityScheme(): Record<
+    string,
+    { type: "openIdConnect"; description?: string; openIdConnectUrl: string }
+  > {
     return {
       [this.getSecuritySchemeName()]: {
         type: "openIdConnect" as const,

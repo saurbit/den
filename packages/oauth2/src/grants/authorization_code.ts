@@ -859,7 +859,20 @@ export abstract class AbstractAuthorizationCodeFlow<
 export class AuthorizationCodeFlow<
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
 > extends AbstractAuthorizationCodeFlow<AuthReqData> {
-  toOpenAPISecurityScheme() {
+  toOpenAPISecurityScheme(): Record<
+    string,
+    {
+      type: "oauth2";
+      description?: string;
+      flows: {
+        authorizationCode: {
+          authorizationUrl: string;
+          scopes: Record<string, string>;
+          tokenUrl: string;
+        };
+      };
+    }
+  > {
     return {
       [this.getSecuritySchemeName()]: {
         type: "oauth2" as const,

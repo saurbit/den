@@ -236,7 +236,10 @@ export class OIDCAuthorizationCodeFlow<
     return undefined;
   }
 
-  toOpenAPISecurityScheme() {
+  toOpenAPISecurityScheme(): Record<
+    string,
+    { type: "openIdConnect"; description?: string; openIdConnectUrl: string }
+  > {
     return {
       [this.getSecuritySchemeName()]: {
         type: "openIdConnect" as const,
@@ -252,7 +255,7 @@ export class OIDCAuthorizationCodeFlow<
    * @returns The OpenID Connect discovery configuration.
    * @link https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
    */
-  getDiscoveryConfiguration(req?: Request) {
+  getDiscoveryConfiguration(req?: Request): Record<string, string | string[] | undefined> {
     const supported = this.getTokenEndpointAuthMethods();
     const scopes = this.getScopes() || {};
 

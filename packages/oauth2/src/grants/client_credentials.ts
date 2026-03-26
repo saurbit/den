@@ -232,7 +232,14 @@ export abstract class AbstractClientCredentialsFlow extends OAuth2Flow
 }
 
 export class ClientCredentialsFlow extends AbstractClientCredentialsFlow {
-  toOpenAPISecurityScheme() {
+  toOpenAPISecurityScheme(): Record<
+    string,
+    {
+      type: "oauth2";
+      description?: string;
+      flows: { clientCredentials: { scopes: Record<string, string>; tokenUrl: string } };
+    }
+  > {
     return {
       [this.getSecuritySchemeName()]: {
         type: "oauth2" as const,
