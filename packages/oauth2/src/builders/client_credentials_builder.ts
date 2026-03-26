@@ -2,7 +2,7 @@
  * @module client_credentials_builder
  * @description Fluent builder for constructing {@link ClientCredentialsFlow} instances.
  * Provides setter methods for the model callbacks required by the Client Credentials
- * grant — a machine-to-machine flow with no end-user involvement.
+ * grant - a machine-to-machine flow with no end-user involvement.
  */
 
 import {
@@ -26,7 +26,7 @@ import { OAuth2FlowBuilder } from "./flow_builder.ts";
  * produces a fully configured `ClientCredentialsFlow` instance via {@link build}.
  *
  * Note: the `none` client authentication method is intentionally disabled for this
- * flow — client credentials require the client to authenticate with a secret.
+ * flow - client credentials require the client to authenticate with a secret.
  *
  * @example
  * ```ts
