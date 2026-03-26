@@ -13,14 +13,14 @@ implementation for [Deno](https://deno.land/).
 
 ## Flow Builders
 
-| Builder | Grant Type |
-| --- | --- |
-| `AuthorizationCodeFlowBuilder` | Authorization Code (with PKCE support) |
-| `ClientCredentialsFlowBuilder` | Client Credentials |
-| `DeviceAuthorizationFlowBuilder` | Device Authorization |
-| `OIDCAuthorizationCodeFlowBuilder` | OIDC Authorization Code |
-| `OIDCClientCredentialsFlowBuilder` | OIDC Client Credentials |
-| `OIDCDeviceAuthorizationFlowBuilder` | OIDC Device Authorization |
+| Builder                              | Grant Type                             |
+| ------------------------------------ | -------------------------------------- |
+| `AuthorizationCodeFlowBuilder`       | Authorization Code (with PKCE support) |
+| `ClientCredentialsFlowBuilder`       | Client Credentials                     |
+| `DeviceAuthorizationFlowBuilder`     | Device Authorization                   |
+| `OIDCAuthorizationCodeFlowBuilder`   | OIDC Authorization Code                |
+| `OIDCClientCredentialsFlowBuilder`   | OIDC Client Credentials                |
+| `OIDCDeviceAuthorizationFlowBuilder` | OIDC Device Authorization              |
 
 ## Quick Start
 
