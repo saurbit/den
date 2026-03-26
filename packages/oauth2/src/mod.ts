@@ -1,3 +1,58 @@
+/**
+ * @module
+ * @description `@saurbit/oauth2` - A modular, framework-agnostic OAuth 2.0 and OpenID Connect
+ * server library.
+ *
+ * Supports the following grant types out of the box:
+ * - **Authorization Code** (with PKCE) - {@link AuthorizationCodeFlow} / {@link OIDCAuthorizationCodeFlow}
+ * - **Client Credentials** - {@link ClientCredentialsFlow} / {@link OIDCClientCredentialsFlow}
+ * - **Device Authorization** (RFC 8628) - {@link DeviceAuthorizationFlow} / {@link OIDCDeviceAuthorizationFlow}
+ *
+ * Each grant type has a corresponding fluent builder for easy configuration:
+ * {@link AuthorizationCodeFlowBuilder}, {@link ClientCredentialsFlowBuilder},
+ * {@link DeviceAuthorizationFlowBuilder}, and their OIDC counterparts.
+ *
+ * ## Quick start
+ *
+ * ```ts
+ * import { ClientCredentialsFlowBuilder } from "@saurbit/oauth2";
+ *
+ * const flow = new ClientCredentialsFlowBuilder({ tokenEndpoint: "/token" })
+ *   .setScopes({ "read:data": "Read access to data" })
+ *   .clientSecretBasicAuthenticationMethod()
+ *   .getClient(async ({ clientId, clientSecret }) => db.findClient(clientId, clientSecret))
+ *   .generateAccessToken(async (ctx) => ({ accessToken: issueToken(ctx) }))
+ *   .verifyToken(async (token) => verifyToken(token))
+ *   .build();
+ * ```
+ *
+ * ## Client authentication methods
+ *
+ * The following token endpoint authentication methods are available:
+ * {@link ClientSecretBasic}, {@link ClientSecretPost}, {@link NoneAuthMethod},
+ * {@link ClientSecretJwt}, {@link PrivateKeyJwt}.
+ *
+ * ## Token types
+ *
+ * Access tokens can be validated as Bearer ({@link BearerTokenType}) or
+ * DPoP ({@link DPoPTokenType}).
+ *
+ * ## OpenID Connect
+ *
+ * OIDC flows extend the base grant flows with ID token enforcement, UserInfo endpoint
+ * support, and discovery document generation. Use {@link OIDCMultipleFlows} to aggregate
+ * multiple OIDC flows behind a single discovery and token endpoint.
+ *
+ * ## Strategy middleware
+ *
+ * Use {@link evaluateStrategy} to protect routes by validating access tokens
+ * against a configured flow.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749 OAuth 2.0 Authorization Framework
+ * @see https://openid.net/specs/openid-connect-core-1_0.html OpenID Connect Core 1.0
+ * @see https://datatracker.ietf.org/doc/html/rfc8628 OAuth 2.0 Device Authorization Grant
+ */
+
 //#region Builders
 
 export { AuthorizationCodeFlowBuilder } from "./builders/authorization_code_builder.ts";
