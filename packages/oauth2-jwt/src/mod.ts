@@ -1,5 +1,3 @@
-export type { JwkVerify, JwtDecode, JwtPayload, JwtVerify } from "@saurbit/oauth2";
-
 export { JoseJwksAuthority } from "./jose_jwks_authority.ts";
 
 export { createInMemoryKeyStore, InMemoryKeyStore } from "./jwks_key_store.ts";
