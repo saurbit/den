@@ -34,6 +34,24 @@ function base64UrlToString(b64url: string): string {
   return new TextDecoder().decode(bytes);
 }
 
+/**
+ * JWT authority backed by [jose](https://github.com/panva/jose).
+ *
+ * Manages RS256 signing key pairs, signs and verifies JWTs, and returns the
+ * JWKS endpoint payload. Keys are stored in a {@link JwksKeyStore} and are
+ * generated automatically on first use.
+ *
+ * @example
+ * ```ts
+ * import { createInMemoryKeyStore, JoseJwksAuthority } from "@saurbit/oauth2-jwt";
+ *
+ * const store = createInMemoryKeyStore();
+ * const authority = new JoseJwksAuthority(store, 86400); // keys valid for 24 h
+ *
+ * const { token } = await authority.sign({ sub: "user-123", exp: Math.floor(Date.now() / 1000) + 3600 });
+ * const payload = await authority.verify(token);
+ * ```
+ */
 export class JoseJwksAuthority implements JwtAuthority {
   #store: JwksKeyStore;
   /**
