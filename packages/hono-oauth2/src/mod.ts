@@ -1,13 +1,3 @@
-// Re-export for convenience
-export type {
-  AuthCredentials,
-  StrategyOptions,
-  StrategyVerifyTokenFunction,
-  TokenType,
-  TokenTypeValidationResponse,
-} from "@saurbit/oauth2";
-export { BearerTokenType } from "@saurbit/oauth2";
-
 export type {
   FailedAuthorizationAction,
   HonoOAuth2StrategyOptions,
