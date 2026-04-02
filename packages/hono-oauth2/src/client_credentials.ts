@@ -235,14 +235,17 @@ export class HonoClientCredentialsFlowBuilder<
   }
 
   /**
-   * This method is overridden to prevent setting a verifyToken handler that does not have access to the Hono context.
+   * This method does not have access to the Hono context.
    * Use `verifyTokenHandler` instead to set a handler that receives the Hono context.
    * @deprecated Use `verifyTokenHandler` instead to set a handler that receives the Hono context.
-   * @param _handler
+   * @param handler
    * @returns
    */
-  override verifyToken(_handler: StrategyVerifyTokenFunction<Request>): this {
-    throw new Error("Use verifyTokenHandler() instead, which provides access to the Hono context.");
+  override verifyToken(handler: StrategyVerifyTokenFunction<Request>): this {
+    this.strategyOptions.verifyToken = async (c, params) => {
+      return await handler(c.req.raw.clone(), params);
+    };
+    return this;
   }
 
   verifyTokenHandler(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
@@ -285,14 +288,17 @@ export class HonoOIDCClientCredentialsFlowBuilder<
   }
 
   /**
-   * This method is overridden to prevent setting a verifyToken handler that does not have access to the Hono context.
+   * This method does not have access to the Hono context.
    * Use `verifyTokenHandler` instead to set a handler that receives the Hono context.
    * @deprecated Use `verifyTokenHandler` instead to set a handler that receives the Hono context.
-   * @param _handler
+   * @param handler
    * @returns
    */
-  override verifyToken(_handler: StrategyVerifyTokenFunction<Request>): this {
-    throw new Error("Use verifyTokenHandler() instead, which provides access to the Hono context.");
+  override verifyToken(handler: StrategyVerifyTokenFunction<Request>): this {
+    this.strategyOptions.verifyToken = async (c, params) => {
+      return await handler(c.req.raw.clone(), params);
+    };
+    return this;
   }
 
   verifyTokenHandler(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
