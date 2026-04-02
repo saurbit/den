@@ -12,13 +12,13 @@ await build({
   package: {
     name: "@saurbit/hono-oauth2",
     version: "0.1.1",
-    description: "Hono middleware for @saurbit/oauth2 flows",
+    description: "Hono adapter for @saurbit/oauth2 flows",
     license: "MIT",
     repository: {
       type: "git",
       url: "git+https://github.com/saurbit/saurbit.git",
     },
-    keywords: ["oauth2", "oidc", "hono", "middleware"],
+    keywords: ["oauth2", "oidc", "hono", "middleware", "adapter"],
     peerDependencies: {
       "@saurbit/oauth2": "^0.1.0",
       "hono": "^4.12.9",
