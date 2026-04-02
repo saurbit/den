@@ -12,7 +12,7 @@ await build({
   package: {
     name: "@saurbit/hono-oauth2",
     version: "0.1.1",
-    description: "Hono adapter for @saurbit/oauth2 flows",
+    description: "Adapter for @saurbit/oauth2 flows in Hono applications",
     license: "MIT",
     repository: {
       type: "git",
