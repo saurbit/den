@@ -83,3 +83,7 @@ app.get(
   async (c) => c.text(`Hello, ${c.get("credentials")?.app?.clientId}!`),
 );
 ```
+
+## License
+
+[MIT](./LICENSE)
