@@ -33,14 +33,34 @@ import type {
 
 //#region Types and Interfaces
 
+/**
+ * Configuration options for {@link HonoAuthorizationCodeFlow}.
+ *
+ * Extends the base `AuthorizationCodeFlowOptions` with Hono-specific strategy options
+ * and a handler to extract authorization endpoint data from the Hono `Context`.
+ *
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoAuthorizationCodeFlowOptions<
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
   E extends Env = Env,
 > extends Omit<AuthorizationCodeFlowOptions<AuthReqData>, "strategyOptions"> {
+  /** Hono-specific strategy options, including token verification and failed authorization handling. */
   strategyOptions: HonoOAuth2StrategyOptions<E>;
+  /** Handler called on POST requests to parse and return the authorization request data from the Hono context. */
   parseAuthorizationEndpointData: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqData>;
 }
 
+/**
+ * Builder options for {@link HonoAuthorizationCodeFlowBuilder}.
+ *
+ * All fields from {@link HonoAuthorizationCodeFlowOptions} are optional except
+ * `parseAuthorizationEndpointData`, which is required.
+ *
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoAuthorizationCodeFlowBuilderOptions<
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
   E extends Env = Env,
@@ -49,6 +69,14 @@ export interface HonoAuthorizationCodeFlowBuilderOptions<
   Pick<HonoAuthorizationCodeFlowOptions<AuthReqData, E>, "parseAuthorizationEndpointData"> {
 }
 
+/**
+ * Hono-adapted methods for the Authorization Code flow.
+ *
+ * Provides convenience wrappers around the core flow that accept a Hono `Context`
+ * instead of a raw `Request`. Obtained via {@link HonoAuthorizationCodeFlow.hono}.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoAuthorizationCodeMethods<E extends Env = Env> extends HonoMethods<E> {
   /**
    * This method is a convenience method that combines the logic of initiating (GET) the authorization code flow for Hono.
@@ -85,14 +113,34 @@ export interface HonoAuthorizationCodeMethods<E extends Env = Env> extends HonoM
 
 //#region OpenID Connect Types and Interfaces
 
+/**
+ * Configuration options for {@link HonoOIDCAuthorizationCodeFlow}.
+ *
+ * Extends the base `OIDCAuthorizationCodeFlowOptions` with Hono-specific strategy options
+ * and a handler to extract authorization endpoint data from the Hono `Context`.
+ *
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCAuthorizationCodeFlowOptions<
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
   E extends Env = Env,
 > extends Omit<OIDCAuthorizationCodeFlowOptions<AuthReqData>, "strategyOptions"> {
+  /** Hono-specific strategy options, including token verification and failed authorization handling. */
   strategyOptions: HonoOAuth2StrategyOptions<E>;
+  /** Handler called on POST requests to parse and return the authorization request data from the Hono context. */
   parseAuthorizationEndpointData: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqData>;
 }
 
+/**
+ * Builder options for {@link HonoOIDCAuthorizationCodeFlowBuilder}.
+ *
+ * All fields from {@link HonoOIDCAuthorizationCodeFlowOptions} are optional except
+ * `parseAuthorizationEndpointData`, which is required.
+ *
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCAuthorizationCodeFlowBuilderOptions<
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
   E extends Env = Env,
@@ -103,6 +151,14 @@ export interface HonoOIDCAuthorizationCodeFlowBuilderOptions<
   Pick<HonoOIDCAuthorizationCodeFlowOptions<AuthReqData, E>, "parseAuthorizationEndpointData"> {
 }
 
+/**
+ * Hono-adapted methods for the OIDC Authorization Code flow.
+ *
+ * Provides convenience wrappers around the core OIDC flow that accept a Hono `Context`
+ * instead of a raw `Request`. Obtained via {@link HonoOIDCAuthorizationCodeFlow.hono}.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCAuthorizationCodeMethods<E extends Env = Env> extends HonoMethods<E> {
   /**
    * This method is a convenience method that combines the logic of initiating (GET) the authorization code flow for Hono.
@@ -139,6 +195,18 @@ export interface HonoOIDCAuthorizationCodeMethods<E extends Env = Env> extends H
 
 //#region Classes
 
+/**
+ * Hono adapter for the OAuth 2.0 Authorization Code flow.
+ *
+ * Wraps {@link AuthorizationCodeFlow} to integrate natively with Hono's `Context`,
+ * providing middleware for route protection and convenience methods for the
+ * authorization and token endpoints.
+ *
+ * Use {@link HonoAuthorizationCodeFlowBuilder} for a fluent configuration API.
+ *
+ * @template E - The Hono `Env` type for the application.
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ */
 export class HonoAuthorizationCodeFlow<
   E extends Env = Env,
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
@@ -285,11 +353,29 @@ export class HonoAuthorizationCodeFlow<
     };
   }
 
+  /**
+   * Returns a frozen object of Hono-adapted methods for use inside Hono route handlers.
+   *
+   * @returns A readonly {@link HonoAuthorizationCodeMethods} instance.
+   */
   hono(): Readonly<HonoAuthorizationCodeMethods<E>> {
     return Object.freeze(this.#hono);
   }
 }
 
+/**
+ * Hono adapter for the OpenID Connect Authorization Code flow.
+ *
+ * Wraps {@link OIDCAuthorizationCodeFlow} to integrate natively with Hono's `Context`,
+ * providing middleware for route protection and convenience methods for the
+ * authorization and token endpoints. Extends the standard Authorization Code flow
+ * with OpenID Connect features such as ID token issuance.
+ *
+ * Use {@link HonoOIDCAuthorizationCodeFlowBuilder} for a fluent configuration API.
+ *
+ * @template E - The Hono `Env` type for the application.
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ */
 export class HonoOIDCAuthorizationCodeFlow<
   E extends Env = Env,
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
@@ -436,6 +522,11 @@ export class HonoOIDCAuthorizationCodeFlow<
     };
   }
 
+  /**
+   * Returns a frozen object of Hono-adapted methods for use inside Hono route handlers.
+   *
+   * @returns A readonly {@link HonoOIDCAuthorizationCodeMethods} instance.
+   */
   hono(): Readonly<HonoOIDCAuthorizationCodeMethods<E>> {
     return Object.freeze(this.#hono);
   }
@@ -445,6 +536,25 @@ export class HonoOIDCAuthorizationCodeFlow<
 
 //#region Builders
 
+/**
+ * Fluent builder for {@link HonoAuthorizationCodeFlow}.
+ *
+ * Provides a chainable API to configure all aspects of the Authorization Code flow
+ * for Hono, including client lookup, token generation, token verification, scope
+ * enforcement, and authorization endpoint data parsing.
+ *
+ * @template E - The Hono `Env` type for the application.
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ *
+ * @example
+ * ```ts
+ * const flow = HonoAuthorizationCodeFlowBuilder
+ *   .create({ parseAuthorizationEndpointData: (c) => parseFormData(c) })
+ *   .setTokenEndpoint("/token")
+ *   .tokenVerifier((c, { token }) => verifyJwt(token))
+ *   .build();
+ * ```
+ */
 export class HonoAuthorizationCodeFlowBuilder<
   E extends Env = Env,
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
@@ -464,6 +574,12 @@ export class HonoAuthorizationCodeFlowBuilder<
     this.parseAuthorizationEndpointDataHandler = parseAuthorizationEndpointData;
   }
 
+  /**
+   * Creates a new `HonoAuthorizationCodeFlowBuilder` instance.
+   *
+   * @param options - Initial builder options. `parseAuthorizationEndpointData` is required.
+   * @returns A new builder instance.
+   */
   static create<
     E extends Env = Env,
     AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
@@ -473,6 +589,12 @@ export class HonoAuthorizationCodeFlowBuilder<
     return new HonoAuthorizationCodeFlowBuilder<E, AuthReqData>(options);
   }
 
+  /**
+   * Sets the action to invoke when authorization fails (e.g. missing or invalid token).
+   *
+   * @param action - A handler that receives the Hono context and the authorization error.
+   * @returns `this` for chaining.
+   */
   failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
     this.strategyOptions.failedAuthorizationAction = action;
     return this;
@@ -492,11 +614,26 @@ export class HonoAuthorizationCodeFlowBuilder<
     return this;
   }
 
+  /**
+   * Sets the token verification handler with full access to the Hono `Context`.
+   *
+   * Prefer this over `verifyToken` when you need to access Hono
+   * context variables, environment bindings, or other request state during verification.
+   *
+   * @param handler - Async function that receives the Hono context and token params, and returns a strategy result.
+   * @returns `this` for chaining.
+   */
   tokenVerifier(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
     this.strategyOptions.verifyToken = handler;
     return this;
   }
 
+  /**
+   * Sets the handler used to parse authorization request data from the Hono context on POST requests.
+   *
+   * @param handler - Async function that extracts and returns the authorization request data.
+   * @returns `this` for chaining.
+   */
   parseAuthorizationEndpointData(
     handler: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqData>,
   ): this {
@@ -504,6 +641,11 @@ export class HonoAuthorizationCodeFlowBuilder<
     return this;
   }
 
+  /**
+   * Builds and returns a configured {@link HonoAuthorizationCodeFlow} instance.
+   *
+   * @returns A new `HonoAuthorizationCodeFlow`.
+   */
   override build(): HonoAuthorizationCodeFlow<E, AuthReqData> {
     const params: HonoAuthorizationCodeFlowOptions<AuthReqData, E> = {
       ...this.buildParams(),
@@ -514,6 +656,25 @@ export class HonoAuthorizationCodeFlowBuilder<
   }
 }
 
+/**
+ * Fluent builder for {@link HonoOIDCAuthorizationCodeFlow}.
+ *
+ * Provides a chainable API to configure all aspects of the OIDC Authorization Code flow
+ * for Hono, including client lookup, token generation, token verification, scope
+ * enforcement, and authorization endpoint data parsing.
+ *
+ * @template E - The Hono `Env` type for the application.
+ * @template AuthReqData - The shape of the parsed authorization request data.
+ *
+ * @example
+ * ```ts
+ * const flow = HonoOIDCAuthorizationCodeFlowBuilder
+ *   .create({ parseAuthorizationEndpointData: (c) => parseFormData(c) })
+ *   .setTokenEndpoint("/token")
+ *   .tokenVerifier((c, { token }) => verifyJwt(token))
+ *   .build();
+ * ```
+ */
 export class HonoOIDCAuthorizationCodeFlowBuilder<
   E extends Env = Env,
   AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
@@ -533,6 +694,12 @@ export class HonoOIDCAuthorizationCodeFlowBuilder<
     this.parseAuthorizationEndpointDataHandler = parseAuthorizationEndpointData;
   }
 
+  /**
+   * Creates a new `HonoOIDCAuthorizationCodeFlowBuilder` instance.
+   *
+   * @param options - Initial builder options. `parseAuthorizationEndpointData` is required.
+   * @returns A new builder instance.
+   */
   static create<
     E extends Env = Env,
     AuthReqData extends AuthorizationCodeReqData = AuthorizationCodeReqData,
@@ -542,6 +709,12 @@ export class HonoOIDCAuthorizationCodeFlowBuilder<
     return new HonoOIDCAuthorizationCodeFlowBuilder<E, AuthReqData>(options);
   }
 
+  /**
+   * Sets the action to invoke when authorization fails (e.g. missing or invalid token).
+   *
+   * @param action - A handler that receives the Hono context and the authorization error.
+   * @returns `this` for chaining.
+   */
   failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
     this.strategyOptions.failedAuthorizationAction = action;
     return this;
@@ -561,11 +734,26 @@ export class HonoOIDCAuthorizationCodeFlowBuilder<
     return this;
   }
 
+  /**
+   * Sets the token verification handler with full access to the Hono `Context`.
+   *
+   * Prefer this over `verifyToken` when you need to access Hono
+   * context variables, environment bindings, or other request state during verification.
+   *
+   * @param handler - Async function that receives the Hono context and token params, and returns a strategy result.
+   * @returns `this` for chaining.
+   */
   tokenVerifier(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
     this.strategyOptions.verifyToken = handler;
     return this;
   }
 
+  /**
+   * Sets the handler used to parse authorization request data from the Hono context on POST requests.
+   *
+   * @param handler - Async function that extracts and returns the authorization request data.
+   * @returns `this` for chaining.
+   */
   parseAuthorizationEndpointData(
     handler: (context: Context<E & OAuth2ServerEnv>) => Promise<AuthReqData>,
   ): this {
@@ -573,6 +761,11 @@ export class HonoOIDCAuthorizationCodeFlowBuilder<
     return this;
   }
 
+  /**
+   * Builds and returns a configured {@link HonoOIDCAuthorizationCodeFlow} instance.
+   *
+   * @returns A new `HonoOIDCAuthorizationCodeFlow`.
+   */
   override build(): HonoOIDCAuthorizationCodeFlow<E, AuthReqData> {
     const params: HonoOIDCAuthorizationCodeFlowOptions<AuthReqData, E> = {
       ...this.buildParams(),

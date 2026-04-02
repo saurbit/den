@@ -25,12 +25,28 @@ import type { HonoDeviceAuthorizationMethods } from "./device_authorization.ts";
 
 //#region Types and Interfaces
 
+/**
+ * Configuration options for {@link HonoOIDCDeviceAuthorizationFlow}.
+ *
+ * Extends the base `OIDCDeviceAuthorizationFlowOptions` with Hono-specific strategy options
+ * for token verification and failed-authorization handling.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCDeviceAuthorizationFlowOptions<
   E extends Env = Env,
 > extends Omit<OIDCDeviceAuthorizationFlowOptions, "strategyOptions"> {
+  /** Hono-specific strategy options, including token verification and failed authorization handling. */
   strategyOptions: HonoOAuth2StrategyOptions<E>;
 }
 
+/**
+ * Builder options for {@link HonoOIDCDeviceAuthorizationFlowBuilder}.
+ *
+ * All fields from {@link HonoOIDCDeviceAuthorizationFlowOptions} are optional.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCDeviceAuthorizationFlowBuilderOptions<
   E extends Env = Env,
 > extends Partial<HonoOIDCDeviceAuthorizationFlowOptions<E>> {
@@ -40,6 +56,20 @@ export interface HonoOIDCDeviceAuthorizationFlowBuilderOptions<
 
 //#region Classes
 
+/**
+ * Hono adapter for the OpenID Connect Device Authorization flow.
+ *
+ * Wraps {@link OIDCDeviceAuthorizationFlow} to integrate natively with Hono's `Context`,
+ * providing a token endpoint handler, middleware for protecting routes, and
+ * convenience methods for the device authorization endpoint.
+ * Extends the standard Device Authorization flow with OpenID Connect features
+ * such as ID token issuance. Intended for input-constrained devices (e.g. smart TVs, CLIs)
+ * that cannot easily handle a browser-based redirect.
+ *
+ * Use {@link HonoOIDCDeviceAuthorizationFlowBuilder} for a fluent configuration API.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export class HonoOIDCDeviceAuthorizationFlow<
   E extends Env = Env,
 > extends OIDCDeviceAuthorizationFlow implements HonoAdapted<E> {
@@ -151,6 +181,11 @@ export class HonoOIDCDeviceAuthorizationFlow<
     };
   }
 
+  /**
+   * Returns a frozen object of Hono-adapted methods for use inside Hono route handlers.
+   *
+   * @returns A readonly {@link HonoDeviceAuthorizationMethods} instance.
+   */
   hono(): Readonly<HonoDeviceAuthorizationMethods<E>> {
     return Object.freeze(this.#hono);
   }
@@ -160,6 +195,24 @@ export class HonoOIDCDeviceAuthorizationFlow<
 
 //#region Builders
 
+/**
+ * Fluent builder for {@link HonoOIDCDeviceAuthorizationFlow}.
+ *
+ * Provides a chainable API to configure all aspects of the OIDC Device Authorization flow
+ * for Hono, including device code generation, token polling, token verification,
+ * and scope enforcement.
+ *
+ * @template E - The Hono `Env` type for the application.
+ *
+ * @example
+ * ```ts
+ * const flow = HonoOIDCDeviceAuthorizationFlowBuilder
+ *   .create()
+ *   .setTokenEndpoint("/token")
+ *   .tokenVerifier((c, { token }) => verifyJwt(token))
+ *   .build();
+ * ```
+ */
 export class HonoOIDCDeviceAuthorizationFlowBuilder<
   E extends Env = Env,
 > extends OIDCDeviceAuthorizationFlowBuilder {
@@ -174,6 +227,12 @@ export class HonoOIDCDeviceAuthorizationFlowBuilder<
     this.strategyOptions = strategyOptions || {};
   }
 
+  /**
+   * Creates a new `HonoOIDCDeviceAuthorizationFlowBuilder` instance.
+   *
+   * @param options - Optional initial builder options.
+   * @returns A new builder instance.
+   */
   static create<
     E extends Env = Env,
   >(
@@ -182,6 +241,12 @@ export class HonoOIDCDeviceAuthorizationFlowBuilder<
     return new HonoOIDCDeviceAuthorizationFlowBuilder<E>(options);
   }
 
+  /**
+   * Sets the action to invoke when authorization fails (e.g. missing or invalid token).
+   *
+   * @param action - A handler that receives the Hono context and the authorization error.
+   * @returns `this` for chaining.
+   */
   failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
     this.strategyOptions.failedAuthorizationAction = action;
     return this;
@@ -201,11 +266,25 @@ export class HonoOIDCDeviceAuthorizationFlowBuilder<
     return this;
   }
 
+  /**
+   * Sets the token verification handler with full access to the Hono `Context`.
+   *
+   * Prefer this over `verifyToken` when you need to access Hono
+   * context variables, environment bindings, or other request state during verification.
+   *
+   * @param handler - Async function that receives the Hono context and token params, and returns a strategy result.
+   * @returns `this` for chaining.
+   */
   tokenVerifier(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
     this.strategyOptions.verifyToken = handler;
     return this;
   }
 
+  /**
+   * Builds and returns a configured {@link HonoOIDCDeviceAuthorizationFlow} instance.
+   *
+   * @returns A new `HonoOIDCDeviceAuthorizationFlow`.
+   */
   override build(): HonoOIDCDeviceAuthorizationFlow<E> {
     const params: HonoOIDCDeviceAuthorizationFlowOptions<E> = {
       ...this.buildParams(),

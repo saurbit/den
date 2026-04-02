@@ -12,11 +12,35 @@ import type { Context, Env, MiddlewareHandler } from "hono";
 import { HonoAdapted, HonoMethods, OAuth2ServerEnv } from "./types.ts";
 import { HTTPException } from "hono/http-exception";
 
+/**
+ * A Hono-adapted OIDC flow.
+ *
+ * Combines the base `OIDCFlow` contract with {@link HonoAdapted} so that any
+ * OIDC flow registered with {@link HonoOIDCMultipleFlows} exposes a `.hono()`
+ * accessor for use inside Hono route handlers.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCFlow<
   E extends Env = Env,
 > extends OIDCFlow, HonoAdapted<E> {
 }
 
+/**
+ * Hono adapter that aggregates multiple OIDC flows behind a single interface.
+ *
+ * Delegates token issuance and token verification to each registered
+ * {@link HonoOIDCFlow} in order, returning the first successful result.
+ * The `authorizeMiddleware` similarly tries each flow's middleware in sequence,
+ * falling through to the next on a 401 and only propagating the error when all
+ * flows have been exhausted.
+ *
+ * Useful when an authorization server must support more than one grant type
+ * or token format simultaneously (e.g. Client Credentials alongside
+ * Authorization Code).
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export class HonoOIDCMultipleFlows<
   E extends Env = Env,
 > extends OIDCMultipleFlows<HonoOIDCFlow<E>> {
@@ -68,6 +92,11 @@ export class HonoOIDCMultipleFlows<
     },
   };
 
+  /**
+   * Returns a frozen object of Hono-adapted methods that fan out across all registered flows.
+   *
+   * @returns A readonly {@link HonoMethods} instance.
+   */
   hono() {
     return Object.freeze(this.#hono);
   }

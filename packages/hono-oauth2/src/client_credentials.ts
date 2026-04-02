@@ -23,8 +23,17 @@ import type {
 
 //#region Types and Interfaces
 
+/**
+ * Configuration options for {@link HonoClientCredentialsFlow}.
+ *
+ * Extends the base `ClientCredentialsFlowOptions` with Hono-specific strategy options
+ * for token verification and failed-authorization handling.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
   extends Omit<ClientCredentialsFlowOptions, "strategyOptions"> {
+  /** Hono-specific strategy options, including token verification and failed authorization handling. */
   strategyOptions: HonoOAuth2StrategyOptions<E>;
 }
 
@@ -32,8 +41,17 @@ export interface HonoClientCredentialsFlowOptions<E extends Env = Env>
 
 //#region OpenID Connect Types and Interfaces
 
+/**
+ * Configuration options for {@link HonoOIDCClientCredentialsFlow}.
+ *
+ * Extends the base `OIDCClientCredentialsFlowOptions` with Hono-specific strategy options
+ * for token verification and failed-authorization handling.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export interface HonoOIDCClientCredentialsFlowOptions<E extends Env = Env>
   extends Omit<OIDCClientCredentialsFlowOptions, "strategyOptions"> {
+  /** Hono-specific strategy options, including token verification and failed authorization handling. */
   strategyOptions: HonoOAuth2StrategyOptions<E>;
 }
 
@@ -41,6 +59,18 @@ export interface HonoOIDCClientCredentialsFlowOptions<E extends Env = Env>
 
 //#region Classes
 
+/**
+ * Hono adapter for the OAuth 2.0 Client Credentials flow.
+ *
+ * Wraps {@link ClientCredentialsFlow} to integrate natively with Hono's `Context`,
+ * providing a token endpoint handler and middleware for protecting routes.
+ * This flow is intended for machine-to-machine authentication where no user
+ * interaction is required.
+ *
+ * Use {@link HonoClientCredentialsFlowBuilder} for a fluent configuration API.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export class HonoClientCredentialsFlow<
   E extends Env = Env,
 > extends ClientCredentialsFlow implements HonoAdapted<E> {
@@ -118,11 +148,27 @@ export class HonoClientCredentialsFlow<
     };
   }
 
+  /**
+   * Returns a frozen object of Hono-adapted methods for use inside Hono route handlers.
+   *
+   * @returns A readonly {@link HonoMethods} instance.
+   */
   hono(): Readonly<HonoMethods<E>> {
     return Object.freeze(this.#hono);
   }
 }
 
+/**
+ * Hono adapter for the OpenID Connect Client Credentials flow.
+ *
+ * Wraps {@link OIDCClientCredentialsFlow} to integrate natively with Hono's `Context`,
+ * providing a token endpoint handler and middleware for protecting routes.
+ * Extends the standard Client Credentials flow with OpenID Connect features.
+ *
+ * Use {@link HonoOIDCClientCredentialsFlowBuilder} for a fluent configuration API.
+ *
+ * @template E - The Hono `Env` type for the application.
+ */
 export class HonoOIDCClientCredentialsFlow<
   E extends Env = Env,
 > extends OIDCClientCredentialsFlow implements HonoAdapted<E> {
@@ -200,6 +246,11 @@ export class HonoOIDCClientCredentialsFlow<
     };
   }
 
+  /**
+   * Returns a frozen object of Hono-adapted methods for use inside Hono route handlers.
+   *
+   * @returns A readonly {@link HonoMethods} instance.
+   */
   hono(): Readonly<HonoMethods<E>> {
     return Object.freeze(this.#hono);
   }
@@ -209,6 +260,27 @@ export class HonoOIDCClientCredentialsFlow<
 
 //#region Builders
 
+/**
+ * Fluent builder for {@link HonoClientCredentialsFlow}.
+ *
+ * Provides a chainable API to configure all aspects of the Client Credentials flow
+ * for Hono, including client lookup, token generation, token verification, and
+ * scope enforcement.
+ *
+ * @template E - The Hono `Env` type for the application.
+ *
+ * @example
+ * ```ts
+ * const flow = HonoClientCredentialsFlowBuilder
+ *   .create()
+ *   .setTokenEndpoint("/token")
+ *   .clientSecretBasicAuthenticationMethod()
+ *   .getClient(async (req) => lookupClient(req))
+ *   .generateAccessToken(async (ctx) => generateJwt(ctx))
+ *   .tokenVerifier((c, { token }) => verifyJwt(token))
+ *   .build();
+ * ```
+ */
 export class HonoClientCredentialsFlowBuilder<
   E extends Env = Env,
 > extends ClientCredentialsFlowBuilder {
@@ -223,12 +295,24 @@ export class HonoClientCredentialsFlowBuilder<
     this.strategyOptions = strategyOptions || {};
   }
 
+  /**
+   * Creates a new `HonoClientCredentialsFlowBuilder` instance.
+   *
+   * @param options - Optional initial builder options.
+   * @returns A new builder instance.
+   */
   static create<E extends Env = Env>(
     options?: Partial<HonoClientCredentialsFlowOptions<E>>,
   ) {
     return new HonoClientCredentialsFlowBuilder<E>(options || {});
   }
 
+  /**
+   * Sets the action to invoke when authorization fails (e.g. missing or invalid token).
+   *
+   * @param action - A handler that receives the Hono context and the authorization error.
+   * @returns `this` for chaining.
+   */
   failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
     this.strategyOptions.failedAuthorizationAction = action;
     return this;
@@ -248,11 +332,25 @@ export class HonoClientCredentialsFlowBuilder<
     return this;
   }
 
+  /**
+   * Sets the token verification handler with full access to the Hono `Context`.
+   *
+   * Prefer this over `verifyToken` when you need to access Hono
+   * context variables, environment bindings, or other request state during verification.
+   *
+   * @param handler - Async function that receives the Hono context and token params, and returns a strategy result.
+   * @returns `this` for chaining.
+   */
   tokenVerifier(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
     this.strategyOptions.verifyToken = handler;
     return this;
   }
 
+  /**
+   * Builds and returns a configured {@link HonoClientCredentialsFlow} instance.
+   *
+   * @returns A new `HonoClientCredentialsFlow`.
+   */
   override build(): HonoClientCredentialsFlow<E> {
     const params: HonoClientCredentialsFlowOptions<E> = {
       ...this.buildParams(),
@@ -262,6 +360,27 @@ export class HonoClientCredentialsFlowBuilder<
   }
 }
 
+/**
+ * Fluent builder for {@link HonoOIDCClientCredentialsFlow}.
+ *
+ * Provides a chainable API to configure all aspects of the OIDC Client Credentials flow
+ * for Hono, including client lookup, token generation, token verification, and
+ * scope enforcement.
+ *
+ * @template E - The Hono `Env` type for the application.
+ *
+ * @example
+ * ```ts
+ * const flow = HonoOIDCClientCredentialsFlowBuilder
+ *   .create()
+ *   .setTokenEndpoint("/token")
+ *   .clientSecretBasicAuthenticationMethod()
+ *   .getClient(async (req) => lookupClient(req))
+ *   .generateAccessToken(async (ctx) => generateJwt(ctx))
+ *   .tokenVerifier((c, { token }) => verifyJwt(token))
+ *   .build();
+ * ```
+ */
 export class HonoOIDCClientCredentialsFlowBuilder<
   E extends Env = Env,
 > extends OIDCClientCredentialsFlowBuilder {
@@ -276,12 +395,24 @@ export class HonoOIDCClientCredentialsFlowBuilder<
     this.strategyOptions = strategyOptions || {};
   }
 
+  /**
+   * Creates a new `HonoOIDCClientCredentialsFlowBuilder` instance.
+   *
+   * @param options - Optional initial builder options.
+   * @returns A new builder instance.
+   */
   static create<E extends Env = Env>(
     options?: Partial<HonoOIDCClientCredentialsFlowOptions<E>>,
   ) {
     return new HonoOIDCClientCredentialsFlowBuilder<E>(options || {});
   }
 
+  /**
+   * Sets the action to invoke when authorization fails (e.g. missing or invalid token).
+   *
+   * @param action - A handler that receives the Hono context and the authorization error.
+   * @returns `this` for chaining.
+   */
   failedAuthorizationAction(action: FailedAuthorizationAction<E>): this {
     this.strategyOptions.failedAuthorizationAction = action;
     return this;
@@ -301,11 +432,25 @@ export class HonoOIDCClientCredentialsFlowBuilder<
     return this;
   }
 
+  /**
+   * Sets the token verification handler with full access to the Hono `Context`.
+   *
+   * Prefer this over `verifyToken` when you need to access Hono
+   * context variables, environment bindings, or other request state during verification.
+   *
+   * @param handler - Async function that receives the Hono context and token params, and returns a strategy result.
+   * @returns `this` for chaining.
+   */
   tokenVerifier(handler: StrategyVerifyTokenFunction<Context<E & OAuth2ServerEnv>>): this {
     this.strategyOptions.verifyToken = handler;
     return this;
   }
 
+  /**
+   * Builds and returns a configured {@link HonoOIDCClientCredentialsFlow} instance.
+   *
+   * @returns A new `HonoOIDCClientCredentialsFlow`.
+   */
   override build(): HonoOIDCClientCredentialsFlow<E> {
     const params: HonoOIDCClientCredentialsFlowOptions<E> = {
       ...this.buildParams(),
