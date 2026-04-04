@@ -20,14 +20,14 @@ await build({
     },
     keywords: ["oauth2", "oidc", "hono", "middleware", "adapter"],
     peerDependencies: {
-      "@saurbit/oauth2": "^0.1.0",
+      "@saurbit/oauth2": "^0.1.1",
       "hono": "^4.12.9",
     },
   },
   mappings: {
     [import.meta.resolve("@saurbit/oauth2")]: {
       name: "@saurbit/oauth2",
-      version: "^0.1.0",
+      version: "^0.1.1",
       peerDependency: true,
     },
     "npm:hono@^4.12.9": {

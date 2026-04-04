@@ -4,6 +4,8 @@ JWT utilities and JWKS authority for [`@saurbit/oauth2`](https://jsr.io/@saurbit
 [jose](https://github.com/panva/jose) to provide ready-made implementations of the JWT-related
 interfaces required by `@saurbit/oauth2`.
 
+📖 [Documentation](https://saurbit.github.io/website/packages/oauth2-jwt/)
+
 ## Installation
 
 **Node.js / Bun**
