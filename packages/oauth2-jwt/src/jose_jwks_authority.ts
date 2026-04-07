@@ -174,7 +174,7 @@ export class JoseJwksAuthority implements JwtAuthority {
     const privateKey = await importJWK(key, "RS256");
 
     const token = await new SignJWT(payload as JWTPayload)
-      .setProtectedHeader({ typ: "jwt", alg: "RS256", kid: key.kid })
+      .setProtectedHeader({ typ: "JWT", alg: "RS256", kid: key.kid })
       .sign(privateKey);
 
     return { token, kid: key.kid };
@@ -211,7 +211,7 @@ export class JoseJwksAuthority implements JwtAuthority {
     if ("jwk" in protectedHeader) {
       throw new Error("Unexpected JWK in header - potential forgery attempt");
     }
-    if (protectedHeader.typ && protectedHeader.typ.toLowerCase() !== "jwt") {
+    if (protectedHeader.typ && protectedHeader.typ.toUpperCase() !== "JWT") {
       throw new Error(`Unexpected typ: ${protectedHeader.typ}`);
     }
 
@@ -242,7 +242,7 @@ export class JoseJwksAuthority implements JwtAuthority {
 
     for (const payload of payloads) {
       const token = await new SignJWT(payload as JWTPayload)
-        .setProtectedHeader({ typ: "jwt", alg: "RS256", kid: key.kid })
+        .setProtectedHeader({ typ: "JWT", alg: "RS256", kid: key.kid })
         .sign(privateKey);
 
       result.push({ token, kid: key.kid });
