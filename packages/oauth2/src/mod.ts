@@ -197,6 +197,7 @@ export {
   type ReplayDetector,
   type ReplayStore,
 } from "./utils/replay_store.ts";
+export { getOriginFromRequest } from "./utils/url_tools.ts";
 
 //#endregion
 
