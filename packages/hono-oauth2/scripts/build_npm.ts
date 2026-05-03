@@ -11,7 +11,7 @@ await build({
   shims: {},
   package: {
     name: "@saurbit/hono-oauth2",
-    version: "0.1.2",
+    version: "0.1.3",
     description: "Adapter for @saurbit/oauth2 flows in Hono applications",
     license: "MIT",
     repository: {
@@ -43,6 +43,22 @@ await build({
     target: "ES2021",
   },
   postBuild() {
+    // Read the generated package.json
+    const packageJson = JSON.parse(Deno.readTextFileSync("./npm/package.json"));
+
+    // Remove hono from dependencies
+    if (packageJson.dependencies?.hono) {
+      delete packageJson.dependencies.hono;
+    }
+
+    // Clean up empty dependencies object
+    if (Object.keys(packageJson.dependencies || {}).length === 0) {
+      delete packageJson.dependencies;
+    }
+
+    // Write it back
+    Deno.writeTextFileSync("./npm/package.json", JSON.stringify(packageJson, null, 2) + "\n");
+
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
     Deno.removeSync("npm/.npmrc");

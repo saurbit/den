@@ -10,7 +10,6 @@ import {
 } from "@saurbit/oauth2";
 import type { Context, Env, MiddlewareHandler } from "hono";
 import { HonoAdapted, HonoMethods, OAuth2ServerEnv } from "./types.ts";
-import { HTTPException } from "hono/http-exception";
 
 /**
  * A Hono-adapted OIDC flow.
@@ -48,6 +47,7 @@ export class HonoOIDCMultipleFlows<
     authorizeMiddleware: (scopes?: string[]): MiddlewareHandler<E & OAuth2ServerEnv> => {
       const middlewares = this.flows.map((flow) => flow.hono().authorizeMiddleware(scopes));
       return async (context, next) => {
+        const { HTTPException } = await import("hono/http-exception");
         for (const [i, middleware] of middlewares.entries()) {
           try {
             const response = await middleware(context, next);

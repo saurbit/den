@@ -1,7 +1,6 @@
 // @saurbit/hono-oauth2/authorization_code.ts
 
 import type { Context, Env, MiddlewareHandler } from "hono";
-import { HTTPException } from "hono/http-exception";
 import {
   type AuthorizationCodeEndpointResponse,
   AuthorizationCodeFlow,
@@ -305,7 +304,8 @@ export class HonoAuthorizationCodeFlow<
       strategyOptions: {},
     });
 
-    this.#failedAuthorizationAction = strategyOptions.failedAuthorizationAction ?? (() => {
+    this.#failedAuthorizationAction = strategyOptions.failedAuthorizationAction ?? (async () => {
+      const { HTTPException } = await import("hono/http-exception");
       throw new HTTPException(401, {
         message: "Unauthorized",
       });
@@ -474,7 +474,8 @@ export class HonoOIDCAuthorizationCodeFlow<
       strategyOptions: {},
     });
 
-    this.#failedAuthorizationAction = strategyOptions.failedAuthorizationAction ?? (() => {
+    this.#failedAuthorizationAction = strategyOptions.failedAuthorizationAction ?? (async () => {
+      const { HTTPException } = await import("hono/http-exception");
       throw new HTTPException(401, {
         message: "Unauthorized",
       });

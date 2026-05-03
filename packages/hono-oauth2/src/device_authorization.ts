@@ -1,7 +1,6 @@
 // @saurbit/hono-oauth2/device_authorization.ts
 
 import type { Context, Env, MiddlewareHandler } from "hono";
-import { HTTPException } from "hono/http-exception";
 import {
   type DeviceAuthorizationEndpointResponse,
   DeviceAuthorizationFlow,
@@ -165,7 +164,8 @@ export class HonoDeviceAuthorizationFlow<
       strategyOptions: {},
     });
 
-    this.#failedAuthorizationAction = strategyOptions.failedAuthorizationAction ?? (() => {
+    this.#failedAuthorizationAction = strategyOptions.failedAuthorizationAction ?? (async () => {
+      const { HTTPException } = await import("hono/http-exception");
       throw new HTTPException(401, {
         message: "Unauthorized",
       });
