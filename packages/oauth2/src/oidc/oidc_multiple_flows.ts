@@ -106,6 +106,20 @@ export class OIDCMultipleFlows<TFlow extends OIDCFlow = OIDCFlow> {
   }
 
   /**
+   * Returns the URL of the token endpoint.
+   */
+  getTokenEndpoint(): string {
+    return this.tokenEndpoint;
+  }
+
+  /**
+   * Returns the URL of the JWKS endpoint.
+   */
+  getJwksEndpoint(): string {
+    return this.jwksEndpoint;
+  }
+
+  /**
    * Handles an incoming token request by trying each registered flow in order.
    * The first flow that returns a successful result is used.
    * If no flow succeeds, returns a combined error from all flows.
